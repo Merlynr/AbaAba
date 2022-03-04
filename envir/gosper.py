@@ -64,7 +64,7 @@ def fractalize(input, steps, rules, file):
 
 
 # determine the order of the fractal
-ORDER = 8
+ORDER = 6
 
 # bufsize is 1: line-by-line
 with open('hexes.wkt.csv', 'w', 1) as output:
