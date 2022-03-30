@@ -43,15 +43,17 @@ import pandas as pd
 
 str = replacement(grammer["start"], grammer["rules"], 3)
 x, y = interpretation(str, geometry["actions"], geometry["rotate"], 30, 0, 0)
-domData = pd.read_csv('dom.csv', usecols=['element', 'LOD'])
+domData = pd.read_csv('dom.csv', usecols=['element', 'LOD', 'color'])
 '''
 添加默认值，使得两个list长度一样
 '''
 LOD = domData['LOD'].values.tolist()
 element = domData['element'].values.tolist()
+color = domData['color'].values.tolist()
 max_len = max(len(x), len(element))
 difference_len = max_len - len(element)
-LOD.extend('#' * difference_len)
+LOD.extend(['-1'] * difference_len)
 element.extend('@' * difference_len)
-dataframe = pd.DataFrame({'x': x, 'y': y, 'element': element, 'LOD': LOD})
+color.extend(['#000000'] * difference_len)
+dataframe = pd.DataFrame({'x': ['{:.2f}'.format(i) for i in x], 'y': ['{:.2f}'.format(i) for i in y], 'element': element, 'LOD': LOD,'color':color})
 dataframe.to_csv("gosper.csv", sep=',')

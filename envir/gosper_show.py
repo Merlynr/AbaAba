@@ -2,19 +2,28 @@ import matplotlib.pyplot as plt
 import sys
 import time
 import pandas as pd
+import matplotlib as mpl
+mpl.style.use('classic')
 
 data = pd.read_csv('gosper.csv')
 pos = {
     'x': 0.00,
     'y': 0.00
 }
-x=data['x']
-y=data['y']
+x = data['x']
+y = data['y']
 el = data['element']
 LOD = data['LOD']
+color = data['color']
+
 
 def showTrack(pos):
     print(pos)
+
+
+# plt.plot(x,y)
+plt.scatter(x,y,color=color)
+plt.show()
 
 
 # class Gosper_Show:
@@ -28,26 +37,24 @@ def showTrack(pos):
 #         print(self.x[1:3])
 
 
+# while True:
+#     plt.plot(x, y)
+#
+#     price = input("price:[eg, 10,20]\n")
+#     a = price.split(',')
+#     if a[0] == 'end' and a[1] == 'end':
+#         break;
+#
+#     plt.plot(0, 0, marker='o', color='b')
+#     m = [0, 2.220446049250313e-16]
+#     n = [0, 0.9999999999999999]
+#     pos['x'] = 1
+#     pos['y'] = 2
+#     showTrack(pos)
+#     plt.plot(m, n, color='r')
+#     plt.show()
 
-while True:
-    plt.plot(x, y)
-
-    price = input("price:[eg, 10,20]\n")
-    a = price.split(',')
-    if a[0] == 'end' and a[1] == 'end':
-        break;
-
-    plt.plot(0, 0, marker='o', color='b')
-    m = [0, 2.220446049250313e-16]
-    n = [0, 0.9999999999999999]
-    pos['x'] = 1
-    pos['y'] = 2
-    showTrack(pos)
-    plt.plot(m, n, color='r')
-    plt.show()
-
-
-#运行轨迹是同层进行搜索
+# 运行轨迹是同层进行搜索
 
 # 进行数据绑定
 # 同层划分LOD
