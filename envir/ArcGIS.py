@@ -72,3 +72,7 @@ print(ridge_vertices)
 # 打开界面，看看效果
 fig = voronoi_plot_2d(vor)
 plt.show()
+# %%
+voracious= Voronoi(points)
+fig=voronoi_plot_2d(vor)
+plt.show()

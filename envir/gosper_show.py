@@ -1,10 +1,12 @@
+# %% enivro
 import matplotlib.pyplot as plt
+from scipy.spatial import Voronoi, voronoi_plot_2d
 import sys
 import time
 import pandas as pd
 import matplotlib as mpl
 mpl.style.use('classic')
-
+# %% datasource
 data = pd.read_csv('gosper.csv')
 pos = {
     'x': 0.00,
@@ -16,14 +18,27 @@ el = data['element']
 LOD = data['LOD']
 color = data['color']
 
+# 要生成德劳内三角网和泰森多边形的点文件
+data_point = pd.read_csv('gosper.csv',usecols=['x', 'y'])
+# all points
+points = data_point.values.tolist()
+
+#%% plot
+vor = Voronoi(points)
+fig = voronoi_plot_2d(vor)
+plt.scatter(x,y,color=color)
+plt.scatter(x,y,color=color)
+plt.plot(x,y)
+plt.show()
+
+
 
 def showTrack(pos):
     print(pos)
 
 
-# plt.plot(x,y)
-plt.scatter(x,y,color=color)
-plt.show()
+
+
 
 
 # class Gosper_Show:
