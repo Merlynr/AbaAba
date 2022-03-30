@@ -5,6 +5,8 @@ import sys
 import time
 import pandas as pd
 import matplotlib as mpl
+import numpy as np
+
 mpl.style.use('classic')
 # %% datasource
 data = pd.read_csv('gosper.csv')
@@ -19,27 +21,32 @@ LOD = data['LOD']
 color = data['color']
 
 # 要生成德劳内三角网和泰森多边形的点文件
-data_point = pd.read_csv('gosper.csv',usecols=['x', 'y'])
+data_point = pd.read_csv('gosper.csv', usecols=['x', 'y'])
 # all points
 points = data_point.values.tolist()
 
-#%% plot
+# %% plot
 vor = Voronoi(points)
-fig = voronoi_plot_2d(vor)
-plt.scatter(x,y,color=color)
-plt.scatter(x,y,color=color)
-plt.plot(x,y)
-plt.show()
+voronoi_plot_2d(vor)
+plt.scatter(x, y, color=color)
+plt.plot(x, y)
+# colorize
+for region in vor.regions:
+    print(region)
+    if not -1 in region:
+        for i in region:
+            print(i)
+        polygon = [vor.vertices[i] for i in region]
+        plt.fill(*zip(*polygon))
 
+plt.show()
+#%%
+plt.scatter(x, y, color=color)
+plt.show()
 
 
 def showTrack(pos):
     print(pos)
-
-
-
-
-
 
 # class Gosper_Show:
 #     def __init__(self, data):
