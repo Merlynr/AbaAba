@@ -27,16 +27,16 @@ points = data_point.values.tolist()
 
 # %% plot
 vor = Voronoi(points)
-voronoi_plot_2d(vor)
+voronoi_plot_2d(vor,show_vertices=False)
 plt.scatter(x, y, color=color)
 plt.plot(x, y)
 # colorize
 for region in vor.regions:
-    print(region)
     if not -1 in region:
         for i in region:
             print(i)
         polygon = [vor.vertices[i] for i in region]
+        print(polygon)
         plt.fill(*zip(*polygon))
 
 plt.show()
