@@ -18,30 +18,27 @@ x = data['x']
 y = data['y']
 el = data['element']
 LOD = data['LOD']
-color = data['color']
+color = data['color'].values.tolist()
 
 # 要生成德劳内三角网和泰森多边形的点文件
-data_point = pd.read_csv('gosper.csv', usecols=['x', 'y'])
+data_point = pd.read_csv('gosper.csv', usecols=['x', 'y', ])
 # all points
 points = data_point.values.tolist()
 
 # %% plot
 vor = Voronoi(points)
-voronoi_plot_2d(vor,show_vertices=False)
+voronoi_plot_2d(vor, show_vertices=False)
 plt.scatter(x, y, color=color)
 plt.plot(x, y)
 # colorize
-for region in vor.regions:
-    if not -1 in region:
-        for i in region:
-            print(i)
-        polygon = [vor.vertices[i] for i in region]
-        print(polygon)
-        plt.fill(*zip(*polygon))
+for i,region in enumerate(vor.regions):
+    print(np.where(region))
 
-plt.show()
-#%%
-plt.scatter(x, y, color=color)
+    # if -1 in region:
+    #     print(i)
+    if not -1 in region:
+        polygon = [vor.vertices[i] for i in region]
+        plt.fill(*zip(*polygon), alpha=0.5,color='#ffffff')
 plt.show()
 
 
