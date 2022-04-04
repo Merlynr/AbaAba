@@ -1,6 +1,7 @@
 # %% enivro
 import matplotlib.pyplot as plt
 from scipy.spatial import Voronoi, voronoi_plot_2d
+from shapely.geometry import Polygon, LineString, Point, MultiPoint
 import sys
 import time
 import pandas as pd
@@ -21,29 +22,41 @@ LOD = data['LOD']
 color = data['color'].values.tolist()
 
 # 要生成德劳内三角网和泰森多边形的点文件
-data_point = pd.read_csv('gosper.csv', usecols=['x', 'y', ])
+data_point = pd.read_csv('gosper.csv', usecols=['x', 'y' ])
 # all points
 points = data_point.values.tolist()
-
-# %% plot
-vor = Voronoi(points)
-voronoi_plot_2d(vor, show_vertices=False)
-plt.scatter(x, y, color=color)
-plt.plot(x, y)
-# colorize
+point_length = len(points)
+#%%
+#取凸包，确保所有点都能取到一个多边形
+# radius单位为度，0.00001约等于1米
+radius = 1.0
+convexbuffer = MultiPoint(points).convex_hull.buffer(radius)
+points.extend(convexbuffer.exterior.coords)
+array = np.array(points)
+# %%
+# 沃罗诺伊图
+vor = Voronoi(array,furthest_site=False, incremental=True, qhull_options=None)
+voronoi_plot_2d(vor, show_vertices=False,show_points=False)
+# 泰森多边形的顶点
+vertices = vor.vertices
+# 泰森多边形的面，-1代表无穷索引
+regions = vor.regions
 for i,region in enumerate(vor.regions):
-    print(np.where(region))
-
+    # print(np.where(vor.point_region==i))
     # if -1 in region:
     #     print(i)
     if not -1 in region:
-        polygon = [vor.vertices[i] for i in region]
-        plt.fill(*zip(*polygon), alpha=0.5,color='#ffffff')
+        if i<len(color):
+            polygon = [vor.vertices[i] for i in region]
+        # print(*polygon)
+            plt.fill(*zip(*polygon), alpha=0.5,color=color[i])
+            print(color[i])
+plt.scatter(x, y, color=color)
+plt.plot(x, y)
 plt.show()
 
-
-def showTrack(pos):
-    print(pos)
+# def showTrack(pos):
+#     print(pos)
 
 # class Gosper_Show:
 #     def __init__(self, data):

@@ -73,6 +73,29 @@ print(ridge_vertices)
 fig = voronoi_plot_2d(vor)
 plt.show()
 # %%
+data = pd.read_csv('gosper.csv')
+pos = {
+    'x': 0.00,
+    'y': 0.00
+}
+x = data['x']
+y = data['y']
+el = data['element']
+LOD = data['LOD']
+color = data['color'].values.tolist()
 voracious= Voronoi(points)
-fig=voronoi_plot_2d(vor)
+fig=voronoi_plot_2d(vor, show_vertices=False,show_points=False)
+
+for i,region in enumerate(vor.regions):
+    # print(np.where(vor.point_region==i))
+    # if -1 in region:
+    #     print(i)
+    if not -1 in region:
+        if i<len(color):
+            polygon = [vor.vertices[i] for i in region]
+        # print(*polygon)
+            plt.fill(*zip(*polygon), alpha=0.5,color=color[i])
+        # print([272, 29, 108, 112, 271])
+plt.show()
+
 plt.show()
