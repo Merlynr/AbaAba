@@ -32,28 +32,55 @@ point_length = len(points)
 radius = 1.0
 convexbuffer = MultiPoint(points).convex_hull.buffer(radius)
 points.extend(convexbuffer.exterior.coords)
-array = np.array(points)
+
 # %%
 # 沃罗诺伊图
-vor = Voronoi(array,furthest_site=False, incremental=True, qhull_options=None)
+vor = Voronoi(points,furthest_site=False, incremental=True, qhull_options=None)
 voronoi_plot_2d(vor, show_vertices=False,show_points=False)
 # 泰森多边形的顶点
 vertices = vor.vertices
 # 泰森多边形的面，-1代表无穷索引
 regions = vor.regions
-for i,region in enumerate(vor.regions):
+
+#%% 画出框
+for simplex in vor.ridge_vertices:
+    simplex = np.asarray(simplex)
+    if np.all(simplex >= 0):
+        plt.plot(vor.vertices[simplex, 0], vor.vertices[simplex, 1], 'k-')
+#%%
+for i,region in enumerate(regions):
+        # c_i = color[vor.point_region[i]]
+        if -1 in region:
+    # c_i = vor.point_region[i]
+            polygon = [vor.vertices[n] for n in region]
+    # if i<len(color):
+            plt.fill(*zip(*polygon), color='#ffffff')
+    # print(color[i])
     # print(np.where(vor.point_region==i))
     # if -1 in region:
     #     print(i)
-    if not -1 in region:
-        if i<len(color):
-            polygon = [vor.vertices[i] for i in region]
-        # print(*polygon)
-            plt.fill(*zip(*polygon), alpha=0.5,color=color[i])
-            print(color[i])
+    #     print((vor.point_region==i)[0])
+    # if not -1 in region:
+    #     if i<point_length:
+    #         polygon = [vor.vertices[n] for n in region]
+    #         print(region)
+    #         print(i)
+    #         plt.fill(*zip(*polygon), color="#000000")
+            # plt.fill(*zip(*polygon), color=color[i])
+
+# print(vor.points [i])
+            # print(color[i])
 plt.scatter(x, y, color=color)
 plt.plot(x, y)
+plt.axis([-18,8,-2,22])
+# plt.xlim([-9,0]), plt.ylim([3,12])
+plt.savefig('voro.png')
 plt.show()
+#%%
+# print(len(vor.point_region))
+# print(vor.point_region)
+# print(len(regions))
+print(len(data_point.values.tolist()))
 
 # def showTrack(pos):
 #     print(pos)
