@@ -50,11 +50,11 @@ for simplex in vor.ridge_vertices:
 #%%
 for i,region in enumerate(regions):
         # c_i = color[vor.point_region[i]]
-        if -1 in region:
+        # if -1 in region:
     # c_i = vor.point_region[i]
             polygon = [vor.vertices[n] for n in region]
     # if i<len(color):
-            plt.fill(*zip(*polygon), color='#ffffff')
+            plt.fill(*zip(*polygon), color="#000000")
     # print(color[i])
     # print(np.where(vor.point_region==i))
     # if -1 in region:
@@ -70,8 +70,8 @@ for i,region in enumerate(regions):
 
 # print(vor.points [i])
             # print(color[i])
-plt.scatter(x, y, color=color)
-plt.plot(x, y)
+plt.scatter(x, y, color=color,s=220,marker='8')
+# plt.plot(x, y)
 plt.axis([-18,8,-2,22])
 # plt.xlim([-9,0]), plt.ylim([3,12])
 plt.savefig('voro.png')
