@@ -13,6 +13,7 @@ class GridMapEnv:
         self.file = file
         self.figure = plt.figure()
 
+    # read data from csv
     def readData(self):
         data = pd.read_csv(self.file)
         # x = data['x']
@@ -24,9 +25,10 @@ class GridMapEnv:
         data_point = pd.read_csv(self.file, usecols=['x', 'y'])
         # all points
         points = data_point.values.tolist()
-        return data,points
+        return data, points
 
-    def createVoronoi(self,points):
+    # draw Voronoi
+    def createVoronoi(self, points):
         # 取凸包，确保所有点都能取到一个多边形
         # radius单位为度，0.00001约等于1米
         radius = 1.0
@@ -52,14 +54,17 @@ class GridMapEnv:
             polygon = [vor.vertices[n] for n in region]
             plt.fill(*zip(*polygon), color="#ffffff")
 
-    def drawGridMap(self,x,y,color):
-        plt.scatter(x, y, color=color, s=150, marker='8')
-        # plt.plot(x, y)
-        plt.axis([-18, 8, -2, 22])
+    # draw line and points
+    def drawGridMap(self, x, y, color):
+        plt.scatter(x, y, color=color, s=320, marker='8')
+        plt.plot(x, y)
+        # plt.axis([-18, 8, -2, 22])
+        plt.axis([-10, 4, 1, 14])
         # plt.xlim([-9,0]), plt.ylim([3,12])
         plt.savefig('voro.png')
         plt.show()
 
+    # demo
     def createBaseEnv(self):
         # datasource
         data = pd.read_csv(self.file)
@@ -106,3 +111,28 @@ class GridMapEnv:
         plt.savefig('voro.png')
         plt.show()
 
+    # init don
+    def bornToDes(self, bornObj, destinationObj):
+        plt.plot(bornObj.x, bornObj.y, marker=bornObj.s, color=bornObj.c)
+        plt.plot(destinationObj.x, destinationObj.y, marker=destinationObj.s, color=destinationObj.c)
+
+    # TODO Agent move,六个方向，步长也需要重新定义，
+    def action(self, direction, step):
+
+        return
+
+    # TODO save trace
+    def saveTrace(self):
+        return
+
+    # TODO 沿着边界移动且不超出边界
+    def stopInSide(self):
+        return
+
+    # TODO 沿着边界移动
+    def moveBySide(self):
+        return
+
+    # TODO 试图越过边界
+    def acrossSide(self):
+        return

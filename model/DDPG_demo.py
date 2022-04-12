@@ -16,7 +16,7 @@ print(action_high)
 
 env = gym.make("LunarLanderContinuous-v2")
 env.reset()
-for _ in range(1000):
+for _ in range(10000):
     env.render()
     action = env.action_space.sample()
     print(action)
