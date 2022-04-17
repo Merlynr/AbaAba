@@ -1,3 +1,5 @@
+import time
+
 from envir.GridMapEnv import GridMapEnv
 
 
@@ -8,26 +10,43 @@ class Point:
         self.s = style
         self.c = color
 
-    def getX(self):
-        return self.x
-
-    def getY(self):
-        return self.y
-
-    def getStyle(self):
-        return self.s
-
-    def getColor(self):
-        return self.c
+    def __repr__(self):
+        return f'Point({self.x!r}, {self.y!r}, {self.s!r}, {self.c!r})'
 
 
 if __name__ == '__main__':
-    born = Point(1.73,13,'8','r')
-    dest = Point(-5.20,6.00,'8','r')
+    born = Point(1.73, 13, '8', 'r')
+    dest = Point(-5.20, 6.00, '8', 'r')
     gridMap = GridMapEnv('./envir/gosper.csv')
-    (data, poins) = gridMap.readData()
-    gridMap.createVoronoi(poins)
-    gridMap.bornToDes(born,dest)
+    (data, points) = gridMap.readData()
+    gridMap.createVoronoi(points)
+    gridMap.bornToDes(born, dest)
     gridMap.drawGridMap(data['x'], data['y'], data['color'])
+    # 运动
+    point = gridMap.action(born, 0, 1)
+    point = gridMap.action(point, 100, 1)
+    point = gridMap.action(point, 0, 1)
+    point = gridMap.action(point, 1, 1)
+    point = gridMap.action(point, 10, 1)
+    point = gridMap.action(point, 11, 1)
+    point = gridMap.action(born, 0, 1)
+    point = gridMap.action(point, 100, 1)
+    point = gridMap.action(point, 110, 1)
+    point = gridMap.action(point, 100, 1)
+    point = gridMap.action(point, 100, 1)
 
+    gridMap.saveTrace()
+    gridMap.showTrace()
+    gridMap.show()
 
+    point = gridMap.action(born, 0, 1)
+
+    gridMap.saveTrace()
+    gridMap.showTrace()
+    gridMap.show()
+    time.sleep(1)
+    point = gridMap.action(born, 0, 1)
+
+    gridMap.saveTrace()
+    gridMap.showTrace()
+    gridMap.show()
