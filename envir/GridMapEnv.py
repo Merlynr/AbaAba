@@ -17,6 +17,8 @@ class MathTools:
         r = 30 / 180.0 * math.pi
         self.cos = math.cos(r)
         self.sin = math.sin(r)
+
+
 # 用于保存每一步
 class TracePart:
     def __init__(self, s, e):
@@ -24,9 +26,12 @@ class TracePart:
         self.end_point = e
         self._items = []
 
+
 class GridMapEnv:
-    def __init__(self, file):
+    def __init__(self, file, border_x, border_y, punish):
         self.file = file
+        # 动态
+        plt.ion()
         self.figure = plt.figure()
         self.trace = []
         self.mathTools = MathTools()
@@ -34,10 +39,16 @@ class GridMapEnv:
         self.trace_y = []
         # 图片保存
         self.filePath = './output/test'
+        # 边界
+        self.border_x = border_x
+        self.border_y = border_y
+        # 惩罚
+        self.punish = punish
+        self.data = {}
 
     # read data from csv
     def readData(self):
-        data = pd.read_csv(self.file)
+        self.data = pd.read_csv(self.file)
         # x = data['x']
         # y = data['y']
         # el = data['element']
@@ -47,7 +58,7 @@ class GridMapEnv:
         data_point = pd.read_csv(self.file, usecols=['x', 'y'])
         # all points
         points = data_point.values.tolist()
-        return data, points
+        return self.data, points
 
     # draw Voronoi
     def createVoronoi(self, points):
@@ -158,6 +169,7 @@ class GridMapEnv:
         point.y += round(1 * step, 2)
         tp.end_point = copy.copy(point)
         self.trace.append(tp)
+        self.acrossSide(point)
         return point
 
     def toDOWN(self, point, step):
@@ -166,6 +178,7 @@ class GridMapEnv:
         point.y -= round(1 * step, 2)
         tp.end_point = copy.copy(point)
         self.trace.append(tp)
+        self.acrossSide(point)
         return point
 
     def toLEFTUP(self, point, step):
@@ -175,6 +188,7 @@ class GridMapEnv:
         point.x -= round(self.mathTools.cos * step, 2)
         tp.end_point = copy.copy(point)
         self.trace.append(tp)
+        self.acrossSide(point)
         return point
 
     def toRIGHTDOWN(self, point, step):
@@ -184,6 +198,7 @@ class GridMapEnv:
         point.x += round(self.mathTools.cos * step, 2)
         tp.end_point = copy.copy(point)
         self.trace.append(tp)
+        self.acrossSide(point)
         return point
 
     def toLEFTDOWN(self, point, step):
@@ -193,6 +208,7 @@ class GridMapEnv:
         point.x -= round(self.mathTools.cos * step, 2)
         tp.end_point = copy.copy(point)
         self.trace.append(tp)
+        self.acrossSide(point)
         return point
 
     def toRIGHTUP(self, point, step):
@@ -202,6 +218,7 @@ class GridMapEnv:
         point.x += round(self.mathTools.cos * step, 2)
         tp.end_point = copy.copy(point)
         self.trace.append(tp)
+        self.acrossSide(point)
         return point
 
     # DONE save trace
@@ -236,20 +253,44 @@ class GridMapEnv:
         self.trace_y.extend(trace['end_y'])
         self.trace_y.insert(0, trace['origin_y'][0])
         # 轨迹
-        print(self.trace_x)
         plt.plot(self.trace_x, self.trace_y, color='r')
 
     from matplotlib import animation
     def show(self):
+        plt.draw()
+        time.sleep(0.1)
+        # plt.pause(0.2)
         plt.savefig(self.filePath)
-        plt.show()
+        # plt.clf()
+        # plt.show()
 
     # TODO 试图越过边界
-    def acrossSide(self):
-        return
+    def acrossSide(self, point):
+        useful_data_0 = self.data[
+            (self.data['x'] == point.x) & (self.data['y'] == point.y) & (self.data['LOD'] != '-1')].empty
+        useful_data_1 = self.data[((self.data['x'] - 0.01) == (round((point.x), 2))) & (self.data['y'] == point.y) & (
+                self.data['LOD'] != '-1')].empty
+        useful_data_2 = self.data[((self.data['x'] + 0.01) == (round((point.x), 2))) & (self.data['y'] == point.y) & (
+                self.data['LOD'] != '-1')].empty
+
+        if (point.x >= self.border_x[0] and point.x < self.border_x[1] and point.y >= self.border_y[0] and point.y <
+                self.border_y[1]):
+            if useful_data_0 and useful_data_1 and useful_data_2:
+                '''
+                    无效数据，惩罚
+                '''
+                print(point)
+                print("惩罚")
+                return True
+            else:
+                return False
+            return True
+        else:
+            return False
 
     # TODO 试图违法规则
     def againstRules(self):
+
         return
 
-    #TODO 是否
+    # TODO 是否
