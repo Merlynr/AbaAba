@@ -12,6 +12,20 @@ import copy
 import math
 
 
+# 点class
+class Points:
+    def __init__(self, x=0.0, y=0.0, style='8', color='#ffffff', ele="@", LOD="0"):
+        self.x = x
+        self.y = y
+        self.s = style
+        self.c = color
+        self.element = ele
+        self.LOD = LOD
+
+    def __repr__(self):
+        return f'Point({self.x!r}, {self.y!r}, {self.s!r}, {self.c!r}, {self.element!r},{self.LOD!r})'
+
+
 class MathTools:
     def __init__(self):
         r = 30 / 180.0 * math.pi
@@ -35,6 +49,7 @@ class GridMapEnv:
         self.figure = plt.figure()
         self.trace = []
         self.mathTools = MathTools()
+        # 轨迹
         self.trace_x = []
         self.trace_y = []
         # 图片保存
@@ -45,6 +60,7 @@ class GridMapEnv:
         # 惩罚
         self.punish = punish
         self.data = {}
+        #
 
     # read data from csv
     def readData(self):
@@ -90,7 +106,7 @@ class GridMapEnv:
     # draw line and points
     def drawGridMap(self, x, y, color):
         plt.scatter(x, y, color=color, s=320, marker='8')
-        # plt.plot(x, y)
+        plt.plot(x, y)
         # plt.axis([-18, 8, -2, 22])
         plt.axis([-11, 4, 0.5, 14.5])
         # plt.xlim([-9,0]), plt.ylim([3,12])
@@ -164,61 +180,79 @@ class GridMapEnv:
             return act(point, step)
 
     def toUP(self, point, step):
+        point = self.getPointInfo(point)
         tp = TracePart({}, {})
         tp.start_point = copy.copy(point)
         point.y += round(1 * step, 2)
+        point = self.getPointInfo(point)
         tp.end_point = copy.copy(point)
         self.trace.append(tp)
         self.acrossSide(point)
+        self.againstRules(tp)
         return point
 
     def toDOWN(self, point, step):
+        point = self.getPointInfo(point)
         tp = TracePart({}, {})
         tp.start_point = copy.copy(point)
         point.y -= round(1 * step, 2)
+        point = self.getPointInfo(point)
         tp.end_point = copy.copy(point)
         self.trace.append(tp)
         self.acrossSide(point)
+        self.againstRules(tp)
         return point
 
     def toLEFTUP(self, point, step):
+        point = self.getPointInfo(point)
         tp = TracePart({}, {})
         tp.start_point = copy.copy(point)
         point.y += round(self.mathTools.sin * step, 2)
         point.x -= round(self.mathTools.cos * step, 2)
+        point = self.getPointInfo(point)
         tp.end_point = copy.copy(point)
         self.trace.append(tp)
         self.acrossSide(point)
+        self.againstRules(tp)
         return point
 
     def toRIGHTDOWN(self, point, step):
+        point = self.getPointInfo(point)
         tp = TracePart({}, {})
         tp.start_point = copy.copy(point)
         point.y -= round(self.mathTools.sin * step, 2)
         point.x += round(self.mathTools.cos * step, 2)
+        point = self.getPointInfo(point)
         tp.end_point = copy.copy(point)
         self.trace.append(tp)
         self.acrossSide(point)
+        self.againstRules(tp)
         return point
 
     def toLEFTDOWN(self, point, step):
+        point = self.getPointInfo(point)
         tp = TracePart({}, {})
         tp.start_point = copy.copy(point)
         point.y -= round(self.mathTools.sin * step, 2)
         point.x -= round(self.mathTools.cos * step, 2)
+        point = self.getPointInfo(point)
         tp.end_point = copy.copy(point)
         self.trace.append(tp)
         self.acrossSide(point)
+        self.againstRules(tp)
         return point
 
     def toRIGHTUP(self, point, step):
+        point = self.getPointInfo(point)
         tp = TracePart({}, {})
         tp.start_point = copy.copy(point)
         point.y += round(self.mathTools.sin * step, 2)
         point.x += round(self.mathTools.cos * step, 2)
+        point = self.getPointInfo(point)
         tp.end_point = copy.copy(point)
         self.trace.append(tp)
         self.acrossSide(point)
+        self.againstRules(tp)
         return point
 
     # DONE save trace
@@ -236,7 +270,7 @@ class GridMapEnv:
                 writer.writerows([[round(i.start_point.x, 2), round(i.start_point.y, 2), round(i.end_point.x, 2),
                                    round(i.end_point.y, 2)]])
 
-    # TODO show trace
+    # DONE show trace
     def showTrace(self):
         # clear data
         self.trace_x = []
@@ -264,33 +298,84 @@ class GridMapEnv:
         # plt.clf()
         # plt.show()
 
-    # TODO 试图越过边界
+    # DONE 试图越过边界 TODO 优化函数
     def acrossSide(self, point):
-        useful_data_0 = self.data[
-            (self.data['x'] == point.x) & (self.data['y'] == point.y) & (self.data['LOD'] != '-1')].empty
-        useful_data_1 = self.data[((self.data['x'] - 0.01) == (round((point.x), 2))) & (self.data['y'] == point.y) & (
-                self.data['LOD'] != '-1')].empty
-        useful_data_2 = self.data[((self.data['x'] + 0.01) == (round((point.x), 2))) & (self.data['y'] == point.y) & (
-                self.data['LOD'] != '-1')].empty
-
-        if (point.x >= self.border_x[0] and point.x < self.border_x[1] and point.y >= self.border_y[0] and point.y <
+        now_point = self.getPointInfo(point)
+        if (now_point.x >= self.border_x[0] and now_point.x < self.border_x[1] and now_point.y >= self.border_y[
+            0] and now_point.y <
                 self.border_y[1]):
-            if useful_data_0 and useful_data_1 and useful_data_2:
+            if now_point.LOD == '-1':
                 '''
                     无效数据，惩罚
                 '''
-                print(point)
-                print("惩罚")
+                print("边界惩罚")
                 return True
             else:
                 return False
-            return True
         else:
+            '''
+                无效数据，惩罚
+            '''
+            print("边界惩罚")
             return False
 
-    # TODO 试图违法规则
-    def againstRules(self):
+    # DONE 试图违法规则
+    def againstRules(self, tp):
+        s = tp.start_point.LOD.split(':')
+        e = tp.end_point.LOD.split(':')
+        # isLoger 判断层级
+        isLoger = True if len(e) >= len(s) else False
+        # 层数设置
+        # LOD,相差为0即为同级，比较上一级
+        LOD_l = abs(len(s) - len(e))
+        # 非同级
+        if LOD_l < 3 and LOD_l > 0:
+            if isLoger:
+                if e[:-LOD_l] == s:
+                    print("奖励")
+                    return
+                else:
+                    print("非父子惩罚")
+                    return
+            else:
+                if s[:-LOD_l] == e:
+                    print("奖励")
+                    return
+                else:
+                    print("非父子惩罚")
+                    return
+        # 同级
+        if LOD_l == 0:
+            if e[:-1] == s[:-1]:
+                print("奖励")
+                return
+            else:
+                print("非同脉惩罚")
+                return
+        # 越级惩罚
+        else:
+            print("越级惩罚")
+            return
 
-        return
+    # Done 根据坐标获取元素信息
+    def getPointInfo(self, point):
+        useful_data_0 = self.data[
+            (self.data['x'] == point.x) & (self.data['y'] == point.y)]
+        useful_data_1 = self.data[((self.data['x'] - 0.01) == (round((point.x), 2))) & (self.data['y'] == point.y)]
+        useful_data_2 = self.data[((self.data['x'] + 0.01) == (round((point.x), 2))) & (self.data['y'] == point.y)]
+        # print(useful_data_0, useful_data_1, useful_data_2)
 
-    # TODO 是否
+        if not useful_data_0.empty:
+            return Points(useful_data_0['x'].values[0], useful_data_0['y'].values[0], '',
+                          useful_data_0['color'].values[0], useful_data_0['element'].values[0],
+                          useful_data_0['LOD'].values[0])
+        if not useful_data_1.empty:
+            return Points(useful_data_1['x'].values[0], useful_data_1['y'].values[0], '',
+                          useful_data_1['color'].values[0], useful_data_1['element'].values[0],
+                          useful_data_1['LOD'].values[0])
+        if not useful_data_2.empty:
+            return Points(useful_data_2['x'].values[0], useful_data_2['y'].values[0], '',
+                          useful_data_2['color'].values[0], useful_data_2['element'].values[0],
+                          useful_data_2['LOD'].values[0])
+        else:
+            return {}
