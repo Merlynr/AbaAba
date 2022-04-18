@@ -298,7 +298,7 @@ class GridMapEnv:
         # plt.clf()
         # plt.show()
 
-    # DONE 试图越过边界 TODO 优化函数
+    # DONE 试图越过边界 DONE 优化函数
     def acrossSide(self, point):
         now_point = self.getPointInfo(point)
         if (now_point.x >= self.border_x[0] and now_point.x < self.border_x[1] and now_point.y >= self.border_y[
