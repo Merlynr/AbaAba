@@ -9,20 +9,15 @@ if __name__ == '__main__':
     # 惩罚
     punish = []
 
-    born = Points(1.73, 13, '8', 'r')
+    born = Points(-0.87,8.50, '8', 'r')
     dest = Points(-5.20, 6.00, '8', 'r')
     gridMap = GridMapEnv('./envir/gosper.csv',border_x,border_y,punish)
     (data, points) = gridMap.readData()
     gridMap.createVoronoi(points)
     gridMap.bornToDes(born, dest)
     gridMap.drawGridMap(data['x'], data['y'], data['color'])
-    # 运动
-    point = gridMap.action(born, 0, 1)
-    gridMap.saveTrace()
-    gridMap.showTrace()
-    gridMap.show()
-
-    point = gridMap.action(point, 100, 1)
+    # 运动,元素，页面跳转
+    point = gridMap.action(born, 111, 2)
     gridMap.saveTrace()
     gridMap.showTrace()
     gridMap.show()
@@ -31,53 +26,58 @@ if __name__ == '__main__':
     gridMap.saveTrace()
     gridMap.showTrace()
     gridMap.show()
-
-    point = gridMap.action(point, 1, 1)
-    gridMap.saveTrace()
-    gridMap.showTrace()
-    gridMap.show()
-
-    point = gridMap.action(point, 11, 1)
-    gridMap.saveTrace()
-    gridMap.showTrace()
-    gridMap.show()
-
-    point = gridMap.action(point, 10, 1)
-    gridMap.saveTrace()
-    gridMap.showTrace()
-    gridMap.show()
-
-    point = gridMap.action(point, 0, 1)
-    gridMap.saveTrace()
-    gridMap.showTrace()
-    gridMap.show()
-
-    point = gridMap.action(point, 100, 1)
-    gridMap.saveTrace()
-    gridMap.showTrace()
-    gridMap.show()
-
-    point = gridMap.action(point, 110, 1)
-    gridMap.saveTrace()
-    gridMap.showTrace()
-    gridMap.show()
-
-    point = gridMap.action(point, 0, 1)
-    gridMap.saveTrace()
-    gridMap.showTrace()
-    gridMap.show()
-
-    point = gridMap.action(point, 100, 1)
-    gridMap.saveTrace()
-    gridMap.showTrace()
-    gridMap.show()
-
-    point = gridMap.action(point, 0, 1)
-    gridMap.saveTrace()
-    gridMap.showTrace()
-    gridMap.show()
-
-    point = gridMap.action(point, 0, 1)
-    gridMap.saveTrace()
-    gridMap.showTrace()
-    gridMap.show()
+    #
+    # point = gridMap.action(point, 0, 1)
+    # gridMap.saveTrace()
+    # gridMap.showTrace()
+    # gridMap.show()
+    #
+    # point = gridMap.action(point, 1, 1)
+    # gridMap.saveTrace()
+    # gridMap.showTrace()
+    # gridMap.show()
+    #
+    # point = gridMap.action(point, 11, 1)
+    # gridMap.saveTrace()
+    # gridMap.showTrace()
+    # gridMap.show()
+    #
+    # point = gridMap.action(point, 10, 1)
+    # gridMap.saveTrace()
+    # gridMap.showTrace()
+    # gridMap.show()
+    #
+    # point = gridMap.action(point, 0, 1)
+    # gridMap.saveTrace()
+    # gridMap.showTrace()
+    # gridMap.show()
+    #
+    # point = gridMap.action(point, 100, 1)
+    # gridMap.saveTrace()
+    # gridMap.showTrace()
+    # gridMap.show()
+    #
+    # point = gridMap.action(point, 110, 1)
+    # gridMap.saveTrace()
+    # gridMap.showTrace()
+    # gridMap.show()
+    #
+    # point = gridMap.action(point, 0, 1)
+    # gridMap.saveTrace()
+    # gridMap.showTrace()
+    # gridMap.show()
+    #
+    # point = gridMap.action(point, 100, 1)
+    # gridMap.saveTrace()
+    # gridMap.showTrace()
+    # gridMap.show()
+    #
+    # point = gridMap.action(point, 0, 1)
+    # gridMap.saveTrace()
+    # gridMap.showTrace()
+    # gridMap.show()
+    #
+    # point = gridMap.action(point, 0, 1)
+    # gridMap.saveTrace()
+    # gridMap.showTrace()
+    # gridMap.show()

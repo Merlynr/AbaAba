@@ -60,7 +60,8 @@ class GridMapEnv:
         # 惩罚
         self.punish = punish
         self.data = {}
-        #
+        # 跨页flag
+        self.isToPageThenStep = 0
 
     # read data from csv
     def readData(self):
@@ -106,7 +107,7 @@ class GridMapEnv:
     # draw line and points
     def drawGridMap(self, x, y, color):
         plt.scatter(x, y, color=color, s=320, marker='8')
-        plt.plot(x, y)
+        # plt.plot(x, y)
         # plt.axis([-18, 8, -2, 22])
         plt.axis([-11, 4, 0.5, 14.5])
         # plt.xlim([-9,0]), plt.ylim([3,12])
@@ -173,7 +174,8 @@ class GridMapEnv:
             110: self.toLEFTUP,
             1: self.toRIGHTDOWN,
             100: self.toLEFTDOWN,
-            11: self.toRIGHTUP
+            11: self.toRIGHTUP,
+            111: self.toPage
         }
         act = dires.get(direction)
         if act:
@@ -255,6 +257,20 @@ class GridMapEnv:
         self.againstRules(tp)
         return point
 
+    # 页面之间跳转，只能向下
+    def toPage(self, point, pageNum):
+        point = self.getPointInfo(point)
+        pageNums = self.getPageDom(point)
+        tp = TracePart({}, {})
+        tp.start_point = copy.copy(point)
+        point = self.getPointInfo(Point(pageNums.iloc[pageNum-1].values[1], pageNums.iloc[pageNum-1].values[2]))
+        tp.end_point = copy.copy(point)
+        self.trace.append(tp)
+        self.acrossSide(point)
+        # self.againstRules(tp)
+        self.isToPageThenStep=1
+        return point
+
     # DONE save trace
     def saveTrace(self):
         # with open('./datasets/trace.txt', "w") as f:  # 设置文件对象
@@ -332,18 +348,28 @@ class GridMapEnv:
         if LOD_l < 3 and LOD_l > 0:
             if isLoger:
                 if e[:-LOD_l] == s:
+                    self.isToPageThenStep=0
                     print("奖励")
                     return
                 else:
                     print("非父子惩罚")
                     return
             else:
+                # 页面跳转错误
+                if self.isToPageThenStep == 1:
+                    print("页面之后向上一层跳转 ERROR")
+                    return
+                # 同级
                 if s[:-LOD_l] == e:
                     print("奖励")
                     return
                 else:
                     print("非父子惩罚")
                     return
+        # 页面跳转错误
+        if self.isToPageThenStep == 1:
+            print("页面之后同级元素进行跳转 ERROR")
+            return
         # 同级
         if LOD_l == 0:
             if e[:-1] == s[:-1]:
@@ -379,3 +405,8 @@ class GridMapEnv:
                           useful_data_2['LOD'].values[0])
         else:
             return {}
+
+    # DONE 查询page相关结点
+    def getPageDom(self, point):
+        pageDom = self.data[(self.data['element'] == point.element)]
+        return pd.DataFrame(pageDom.drop(pageDom[(pageDom['x'] == point.x) & (pageDom['y'] == point.y)].index))
