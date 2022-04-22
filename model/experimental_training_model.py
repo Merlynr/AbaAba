@@ -149,6 +149,7 @@ class DDPG():
             actor_loss = self.learn_actor(obs)
             critic_loss = self.learn_critic(obs, action, reward, next_obs, terminal)
 
+#%%
 
 from cartpole_continuous import ContinuousCartPoleEnv
 

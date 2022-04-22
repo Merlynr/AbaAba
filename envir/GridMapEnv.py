@@ -43,6 +43,11 @@ class TracePart:
 
 class GridMapEnv:
     def __init__(self, file, border_x, border_y, punish):
+        super(GridMapEnv,self).__init__()
+        # 动作空间，状态特征空间
+        self.action_space = [10,0,110,1,100,11,111]
+        self.n_features = (None, 16, 16, 1)
+
         self.file = file
         # 动态
         plt.ion()
@@ -261,6 +266,7 @@ class GridMapEnv:
     def toPage(self, point, pageNum):
         point = self.getPointInfo(point)
         pageNums = self.getPageDom(point)
+        # TODO 是否可以进行跳转
         tp = TracePart({}, {})
         tp.start_point = copy.copy(point)
         point = self.getPointInfo(Point(pageNums.iloc[pageNum-1].values[1], pageNums.iloc[pageNum-1].values[2]))
@@ -308,7 +314,7 @@ class GridMapEnv:
     from matplotlib import animation
     def show(self):
         plt.draw()
-        time.sleep(0.1)
+        # time.sleep(0.1)
         # plt.pause(0.2)
         plt.savefig(self.filePath)
         # plt.clf()
@@ -410,3 +416,5 @@ class GridMapEnv:
     def getPageDom(self, point):
         pageDom = self.data[(self.data['element'] == point.element)]
         return pd.DataFrame(pageDom.drop(pageDom[(pageDom['x'] == point.x) & (pageDom['y'] == point.y)].index))
+
+    # TODO 结点条件加入
