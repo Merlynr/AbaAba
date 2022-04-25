@@ -24,6 +24,18 @@ args = parser.parse_args()
 
 ALG_NAME = 'DQN'
 ENV_ID = 'CartPole-v1'
+# GPU
+print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
+
+import os
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+
+os.environ["SDL_VIDEODRIVER"] = "dummy"
+
+config =  tf.compat.v1.ConfigProto()
+config.gpu_options.allow_growth=True
+config.gpu_options.per_process_gpu_memory_fraction = 0.9 # 占用GPU90%的显存
+sess = tf.compat.v1.Session(config=config)
 
 class ReplayBuffer:
     def __init__(self, capacity=10000):
@@ -54,15 +66,18 @@ class Agent:
         self.env = env
         self.state_dim = self.env.observation_space.shape[0]
         self.action_dim = self.env.action_space.n
+        print('shape',self.action_dim)
 
         def create_model(input_state_shape):
             input_layer = tl.layers.Input(input_state_shape)
+            # print(input_layer)
             layer_1 = tl.layers.Dense(n_units=32, act=tf.nn.relu)(input_layer)
             layer_2 = tl.layers.Dense(n_units=16, act=tf.nn.relu)(layer_1)
             output_layer = tl.layers.Dense(n_units=self.action_dim)(layer_2)
             return tl.models.Model(inputs=input_layer, outputs=output_layer)
 
         self.model = create_model([None, self.state_dim])
+        print(self.model)
         self.target_model = create_model([None, self.state_dim])
         self.model.train()
         self.target_model.eval()
@@ -127,7 +142,9 @@ class Agent:
                 total_reward, done = 0, False
                 state = self.env.reset().astype(np.float32)
                 while not done:
+                    # print(state)
                     action = self.choose_action(state)
+                    print('action',action)
                     next_state, reward, done, _ = self.env.step(action)
                     next_state = next_state.astype(np.float32)
                     self.buffer.push(state, action, reward, next_state, done)
