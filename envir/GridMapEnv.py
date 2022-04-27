@@ -1,5 +1,6 @@
 import csv
 import os
+import shutil
 from turtle import st
 
 import matplotlib.pyplot as plt
@@ -52,16 +53,14 @@ class TracePart:
 
 
 class GridMapEnv:
-    def __init__(self, file, border_x, border_y, punish):
+    def __init__(self):
         # 始发点，目的点，中转点
         self.born = Points()
         self.dest = Points()
         self.transit = Points()
 
         super(GridMapEnv, self).__init__()
-        self.file = file
-        # 动态
-        plt.ion()
+        self.file = './envir/gosper.csv'
         # self.figure = plt.figure()
         self.trace = []
         self.mathTools = MathTools()
@@ -71,10 +70,10 @@ class GridMapEnv:
         # 图片保存
         self.filePath = './output/test'
         # 边界
-        self.border_x = border_x
-        self.border_y = border_y
-        # 惩罚
-        self.punish = punish
+        self.border_x = [-10, 3]
+        self.border_y = [1, 14]
+        # 惩罚# 奖罚,奖励>同级跳转》越级》非父子》跨页后非向下跳转》边界》层级limit
+        self.punish = [50, 20, -1000, -1000, -1000, -1000, 3]
         self.data = {}
         # 跨页flag
         self.isToPageThenStep = 0
@@ -98,6 +97,10 @@ class GridMapEnv:
 
         self.observation_space = Box(low, high)
 
+        self.createVoronoi()
+        self.bornToDes()
+        self.drawGridMap()
+
     # read data from csv
     def readData(self):
         self.data = pd.read_csv(self.file)
@@ -113,9 +116,12 @@ class GridMapEnv:
         return self.data, points
 
     # draw Voronoi
-    def createVoronoi(self, points):
+    def createVoronoi(self):
+        # 动态
+        plt.ion()
         # 取凸包，确保所有点都能取到一个多边形
         # radius单位为度，0.00001约等于1米
+        (data, points) = self.readData()
         radius = 1.0
         convexbuffer = MultiPoint(points).convex_hull.buffer(radius)
         points.extend(convexbuffer.exterior.coords)
@@ -140,8 +146,9 @@ class GridMapEnv:
             plt.fill(*zip(*polygon), color="#ffffff")
 
     # draw line and points
-    def drawGridMap(self, x, y, color):
-        plt.scatter(x, y, color=color, s=320, marker='8')
+    def drawGridMap(self):
+        (data, points) = self.readData()
+        plt.scatter(data['x'].tolist(), data['y'].tolist(), color=data['color'].tolist(), s=320, marker='8')
         # plt.plot(x, y)
         # plt.axis([-18, 8, -2, 22])
         plt.axis([-11, 4, 0.5, 14.5])
@@ -197,12 +204,12 @@ class GridMapEnv:
         # plt.show()
 
     # init don
-    def bornToDes(self, bornObj, destinationObj):
-        self.born = bornObj
-        self.dest = destinationObj
-        self.transit = bornObj
-        plt.plot(bornObj.x, bornObj.y, marker=bornObj.s, color=bornObj.c)
-        plt.plot(destinationObj.x, destinationObj.y, marker=destinationObj.s, color=destinationObj.c)
+    def bornToDes(self):
+        self.born = Points(-0.87, 8.50, '8', 'r')
+        self.dest = Points(-5.20, 6.00, '8', 'r')
+        self.transit = self.born
+        plt.plot(self.born.x, self.born.y, marker=self.born.s, color=self.born.c)
+        plt.plot(self.dest.x, self.dest.y, marker=self.dest.s, color=self.dest.c)
 
     # DONE Agent move,六个方向，步长也需要重新定义，TODO 返回当前结点，奖惩，状态，done，_
     def step(self, direction):
@@ -231,6 +238,7 @@ class GridMapEnv:
         }
         act = dires.get(direction)
         if act:
+            print('action==>', act[0].__name__, act[1])
             return act[0](act[1])
 
     # 存在边界惩罚则按边界惩罚计算
@@ -239,26 +247,32 @@ class GridMapEnv:
         tp = TracePart({}, {})
         tp.start_point = copy.copy(self.transit)
         self.transit.y += round(1 * step, 2)
-        self.transit = self.getPointInfo(self.transit)
-        tp.end_point = copy.copy(self.transit)
-        self.trace.append(tp)
-        # self.acrossSide(point)
-        # self.againstRules(tp)
-        reward, done = self.acrossSide(self.transit, tp)
-        self.saveTrace()
-        return self.createState(), reward, done, self.transit
+        if self.getPointInfo(self.transit)=='taoyi':
+            return self.createState(), -1000, False, self.transit
+        else:
+            self.transit = self.getPointInfo(self.transit)
+            tp.end_point = copy.copy(self.transit)
+            self.trace.append(tp)
+            # self.acrossSide(point)
+            # self.againstRules(tp)
+            reward, done = self.acrossSide(self.transit, tp)
+            self.saveTrace()
+            return self.createState(), reward, done, self.transit
 
     def toDOWN(self, step):
         self.transit = self.getPointInfo(self.transit)
         tp = TracePart({}, {})
         tp.start_point = copy.copy(self.transit)
         self.transit.y -= round(1 * step, 2)
-        self.transit = self.getPointInfo(self.transit)
-        tp.end_point = copy.copy(self.transit)
-        self.trace.append(tp)
-        reward, done = self.acrossSide(self.transit, tp)
-        self.saveTrace()
-        return self.createState(), reward, done, self.transit
+        if self.getPointInfo(self.transit)=='taoyi':
+            return self.createState(), -1000, False, self.transit
+        else:
+            self.transit = self.getPointInfo(self.transit)
+            tp.end_point = copy.copy(self.transit)
+            self.trace.append(tp)
+            reward, done = self.acrossSide(self.transit, tp)
+            self.saveTrace()
+            return self.createState(), reward, done, self.transit
 
     def toLEFTUP(self, step):
         self.transit = self.getPointInfo(self.transit)
@@ -266,12 +280,15 @@ class GridMapEnv:
         tp.start_point = copy.copy(self.transit)
         self.transit.y += round(self.mathTools.sin * step, 2)
         self.transit.x -= round(self.mathTools.cos * step, 2)
-        self.transit = self.getPointInfo(self.transit)
-        tp.end_point = copy.copy(self.transit)
-        self.trace.append(tp)
-        reward, done = self.acrossSide(self.transit, tp)
-        self.saveTrace()
-        return self.createState(), reward, done, self.transit
+        if self.getPointInfo(self.transit)=='taoyi':
+            return self.createState(), -1000, False, self.transit
+        else:
+            self.transit = self.getPointInfo(self.transit)
+            tp.end_point = copy.copy(self.transit)
+            self.trace.append(tp)
+            reward, done = self.acrossSide(self.transit, tp)
+            self.saveTrace()
+            return self.createState(), reward, done, self.transit
 
     def toRIGHTDOWN(self, step):
         self.transit = self.getPointInfo(self.transit)
@@ -279,12 +296,15 @@ class GridMapEnv:
         tp.start_point = copy.copy(self.transit)
         self.transit.y -= round(self.mathTools.sin * step, 2)
         self.transit.x += round(self.mathTools.cos * step, 2)
-        self.transit = self.getPointInfo(self.transit)
-        tp.end_point = copy.copy(self.transit)
-        self.trace.append(tp)
-        reward, done = self.acrossSide(self.transit, tp)
-        self.saveTrace()
-        return self.createState(), reward, done, self.transit
+        if self.getPointInfo(self.transit)=='taoyi':
+            return self.createState(), -1000, False, self.transit
+        else:
+            self.transit = self.getPointInfo(self.transit)
+            tp.end_point = copy.copy(self.transit)
+            self.trace.append(tp)
+            reward, done = self.acrossSide(self.transit, tp)
+            self.saveTrace()
+            return self.createState(), reward, done, self.transit
 
     def toLEFTDOWN(self, step):
         self.transit = self.getPointInfo(self.transit)
@@ -292,12 +312,15 @@ class GridMapEnv:
         tp.start_point = copy.copy(self.transit)
         self.transit.y -= round(self.mathTools.sin * step, 2)
         self.transit.x -= round(self.mathTools.cos * step, 2)
-        self.transit = self.getPointInfo(self.transit)
-        tp.end_point = copy.copy(self.transit)
-        self.trace.append(tp)
-        reward, done = self.acrossSide(self.transit, tp)
-        self.saveTrace()
-        return self.createState(), reward, done, self.transit
+        if self.getPointInfo(self.transit)=='taoyi':
+            return self.createState(), -1000, False, self.transit
+        else:
+            self.transit = self.getPointInfo(self.transit)
+            tp.end_point = copy.copy(self.transit)
+            self.trace.append(tp)
+            reward, done = self.acrossSide(self.transit, tp)
+            self.saveTrace()
+            return self.createState(), reward, done, self.transit
 
     def toRIGHTUP(self, step):
         self.transit = self.getPointInfo(self.transit)
@@ -305,28 +328,38 @@ class GridMapEnv:
         tp.start_point = copy.copy(self.transit)
         self.transit.y += round(self.mathTools.sin * step, 2)
         self.transit.x += round(self.mathTools.cos * step, 2)
-        self.transit = self.getPointInfo(self.transit)
-        tp.end_point = copy.copy(self.transit)
-        self.trace.append(tp)
-        reward, done = self.acrossSide(self.transit, tp)
-        self.saveTrace()
-        return self.createState(), reward, done, self.transit
+        if self.getPointInfo(self.transit)=='taoyi':
+            return self.createState(), -1000, False, self.transit
+        else:
+            self.transit = self.getPointInfo(self.transit)
+            tp.end_point = copy.copy(self.transit)
+            self.trace.append(tp)
+            reward, done = self.acrossSide(self.transit, tp)
+            self.saveTrace()
+            return self.createState(), reward, done, self.transit
 
     # 页面之间跳转，只能向下
     def toPage(self, pageNum):
         self.transit = self.getPointInfo(self.transit)
         pageNums = self.getPageDom(self.transit)
-        # TODO 是否可以进行跳转
-        tp = TracePart({}, {})
-        tp.start_point = copy.copy(self.transit)
-        self.transit = self.getPointInfo(
-            Point(pageNums.iloc[pageNum - 1].values[1], pageNums.iloc[pageNum - 1].values[2]))
-        tp.end_point = copy.copy(self.transit)
-        self.trace.append(tp)
-        reward, done = self.acrossSide(self.transit, tp)
-        self.isToPageThenStep = 1
-        self.saveTrace()
-        return self.createState(), reward, done, self.transit
+        if (pageNum + 1) >= len(pageNums):
+            # 负奖励 无效跨页
+            print("无效页面跨页，负奖励")
+            return self.createState(), -1000, False, self.transit
+        else:
+            tp = TracePart({}, {})
+            tp.start_point = copy.copy(self.transit)
+            if self.getPointInfo( Point(pageNums.iloc[pageNum].values[1], pageNums.iloc[pageNum].values[2])) == 'taoyi':
+                return self.createState(), -1000, False, self.transit
+            else:
+                self.transit = self.getPointInfo(
+                    Point(pageNums.iloc[pageNum].values[1], pageNums.iloc[pageNum].values[2]))
+                tp.end_point = copy.copy(self.transit)
+                self.trace.append(tp)
+                reward, done = self.acrossSide(self.transit, tp)
+                self.isToPageThenStep = 1
+                self.saveTrace()
+                return self.createState(), reward, done, self.transit
 
     # DONE save trace
     def saveTrace(self):
@@ -356,22 +389,27 @@ class GridMapEnv:
         # list_0=data[0][0]
         # print(list_0)
         # plt.plot([line.start_point.x,line.start_point.y], [line.end_point.x,line.end_point.y], color='r',linestyle=':')
+        if not os.path.getsize("./datasets/trace.csv"):
+            return
         trace = pd.read_csv("./datasets/trace.csv")
         self.trace_x.extend(trace['end_x'].values.tolist())
         self.trace_x.insert(0, trace['origin_x'][0])
         self.trace_y.extend(trace['end_y'])
         self.trace_y.insert(0, trace['origin_y'][0])
+        trace.drop(index=trace.index)
+        trace.drop(index=trace.index)
         # 轨迹
         plt.plot(self.trace_x, self.trace_y, color='r')
+        plt.pause(0.5)
 
     from matplotlib import animation
     def show(self):
-        plt.draw()
+        # plt.draw()
         # time.sleep(0.1)
         # plt.pause(0.2)
         plt.savefig(self.filePath)
         # plt.clf()
-        # plt.show()
+        plt.show()
 
     # DONE 试图越过边界 DONE 优化函数
     def acrossSide(self, point, tp):
@@ -450,6 +488,7 @@ class GridMapEnv:
 
     # Done 根据坐标获取元素信息
     def getPointInfo(self, point):
+
         useful_data_0 = self.data[
             (self.data['x'] == point.x) & (self.data['y'] == point.y)]
         useful_data_1 = self.data[(self.data['x'] == (round((point.x - 0.01), 2))) & (self.data['y'] == point.y)]
@@ -469,9 +508,9 @@ class GridMapEnv:
                           useful_data_2['color'].values[0], useful_data_2['element'].values[0],
                           useful_data_2['LOD'].values[0])
         else:
-            print(point)
             print("useful_data", useful_data_0, useful_data_1, useful_data_2)
-            return {}
+            print("跳出数据集")
+            return "taoyi"
 
     # DONE 查询page相关结点
     def getPageDom(self, point):
@@ -518,7 +557,16 @@ class GridMapEnv:
     def reset(self):
         # 清空轨迹
         self.transit = self.born
-        open('./datasets/trace.csv', 'w').close()
+        file_path = './datasets/trace.csv'
+        self.trace = []
+        self.data = {}
+        # 跨页flag
+        self.isToPageThenStep = 0
+        plt.close()
+        if os.path.isfile(file_path):
+            os.remove(file_path)
+            open(file_path, 'w').close()
+        # f=open('', 'r+').close()
         return self.createState()
 
 # TODO 目的地中止，

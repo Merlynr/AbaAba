@@ -10,7 +10,7 @@ import tensorlayer as tl
 from envir.GridMapEnv import GridMapEnv, Points
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--train', dest='train', default=False)
+parser.add_argument('--train', dest='train', default=True)
 parser.add_argument('--test', dest='test', default=False)
 
 parser.add_argument('--gamma', type=float, default=0.95)
@@ -134,26 +134,30 @@ class Agent:
             print("Test {} | episode rewards is {}".format(episode, total_reward))
 
     def train(self, train_episodes=200):
+        print(train_episodes)
         if args.train:
             for episode in range(train_episodes):
                 total_reward, done = 0, True
                 state = self.env.reset().astype(np.float32)
+                self.env.createVoronoi()
+                self.env.bornToDes()
+                self.env.drawGridMap()
+                # self.env.show()
                 while done:
                     # print(state)
                     action = self.choose_action(state)
                     next_state, reward, done, _ = self.env.step(action)
-                    self.env.show()
                     self.env.showTrace()
-                    time.sleep(1)
                     next_state = next_state.astype(np.float32)
                     self.buffer.push(state, action, reward, next_state, done)
                     total_reward += reward
                     state = next_state
+                if not done:
                     self.env.reset()
                 if len(self.buffer.buffer) > args.batch_size:
                     self.replay()
                     self.target_update()
-                print('EP{} EpisodeReward={}'.format(episode, total_reward))
+                print('EP{} EpisodeReward={}'.format(episode, total_reward),'\n')
                 # if episode % 10 == 0:
                 #     self.test_episode()
             self.saveModel()
@@ -190,15 +194,15 @@ if __name__ == "__main__":
     born = Points(-0.87, 8.50, '8', 'r')
     dest = Points(-5.20, 6.00, '8', 'r')
 
-    gridMap = GridMapEnv('./envir/gosper.csv', border_x, border_y, punish)
-    (data, points) = gridMap.readData()
-    gridMap.createVoronoi(points)
-    gridMap.bornToDes(born, dest)
-    gridMap.drawGridMap(data['x'].tolist(), data['y'].tolist(), data['color'].tolist())
+    gridMap = GridMapEnv()
+    # (data, points) = gridMap.readData()
+    # gridMap.createVoronoi(points)
+    # gridMap.bornToDes(born, dest)
+    # gridMap.drawGridMap(data['x'].tolist(), data['y'].tolist(), data['color'].tolist())
 
-
+    rewards=0
     agent = Agent(gridMap)
-    agent.train(train_episodes=args.train_episodes)
+    agent.train()
 
 
 
@@ -270,7 +274,7 @@ if __name__ == "__main__":
 #     print(rewards,gridMap.observation_space)
 #
 # #页面
-#     state,reward,done,_ = gridMap.action( 6)
+#     state,reward,done,_ = gridMap.step( 6)
 #     gridMap.showTrace()
 #     gridMap.show()
 #     rewards += reward
