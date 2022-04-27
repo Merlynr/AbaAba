@@ -66,7 +66,7 @@ class Agent:
         self.env = env
         self.state_dim = self.env.observation_space.shape[0]
         self.action_dim = self.env.action_space.n
-        print('shape',self.action_dim)
+        print('shape',self.state_dim)
 
         def create_model(input_state_shape):
             input_layer = tl.layers.Input(input_state_shape)

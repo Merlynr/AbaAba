@@ -1,6 +1,7 @@
 #%%
 import argparse
 import random
+import time
 
 import numpy as np
 import tensorflow as tf
@@ -10,7 +11,7 @@ from envir.GridMapEnv import GridMapEnv, Points
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--train', dest='train', default=False)
-parser.add_argument('--test', dest='test', default=True)
+parser.add_argument('--test', dest='test', default=False)
 
 parser.add_argument('--gamma', type=float, default=0.95)
 parser.add_argument('--lr', type=float, default=0.005)
@@ -64,7 +65,7 @@ class ReplayBuffer:
 class Agent:
     def __init__(self,env):
         self.env=env
-        self.state_dim = self.env.observation_space.shape
+        self.state_dim = self.env.observation_space.shape[0]
         self.action_dim = self.env.action_space.n
 
         def create_model(input_state_shape):
@@ -73,9 +74,8 @@ class Agent:
             layer_2 = tl.layers.Dense(n_units=32, act=tf.nn.relu)(layer_1)
             output_layer = tl.layers.Dense(n_units=self.action_dim)(layer_2)
             return tl.models.Model(inputs=input_layer, outputs=output_layer)
-        self.model = create_model(self.state_dim)
-        print(self.action_dim)
-        self.target_model = create_model(self.state_dim)
+        self.model = create_model([None, self.state_dim])
+        self.target_model = create_model([None, self.state_dim])
         self.model.train()
         self.target_model.eval()
         self.model_optim = self.target_model_optim = tf.optimizers.Adam(lr=args.lr)
@@ -94,6 +94,7 @@ class Agent:
         if np.random.uniform() < self.epsilon:
             return np.random.choice(self.action_dim)
         else:
+            # TODO 超出实际
             q_value = self.model(state[np.newaxis, :])[0]
             return np.argmax(q_value)
 
@@ -120,8 +121,8 @@ class Agent:
     def test_episode(self, test_episodes):
         for episode in range(test_episodes):
             state = self.env.reset().astype(np.float32)
-            total_reward, done = 0, False
-            while not done:
+            total_reward, done = 0, True
+            while done:
                 action = self.model(np.array([state], dtype=np.float32))[0]
                 action = np.argmax(action)
                 next_state, reward, done, _ = self.env.step(action)
@@ -135,18 +136,20 @@ class Agent:
     def train(self, train_episodes=200):
         if args.train:
             for episode in range(train_episodes):
-                total_reward, done = 0, False
+                total_reward, done = 0, True
                 state = self.env.reset().astype(np.float32)
                 while done:
                     # print(state)
                     action = self.choose_action(state)
-                    print('action',action)
                     next_state, reward, done, _ = self.env.step(action)
+                    self.env.show()
+                    self.env.showTrace()
+                    time.sleep(1)
                     next_state = next_state.astype(np.float32)
                     self.buffer.push(state, action, reward, next_state, done)
                     total_reward += reward
                     state = next_state
-                    # self.render()
+                    self.env.reset()
                 if len(self.buffer.buffer) > args.batch_size:
                     self.replay()
                     self.target_update()
@@ -168,6 +171,7 @@ class Agent:
 
     def loadModel(self):
         path = os.path.join('model', '_'.join([ALG_NAME, ENV_ID]))
+        print(path)
         if os.path.exists(path):
             print('Load DQN Network parametets ...')
             tl.files.load_hdf5_to_weights_in_order(os.path.join(path, 'model.hdf5'), self.model)
@@ -181,24 +185,22 @@ if __name__ == "__main__":
     border_x = [-10, 3]
     border_y = [1, 14]
     # 奖罚,奖励>同级跳转》越级》非父子》跨页后非向下跳转》边界》层级limit
-    punish = [50, 20, -10, -30, -100, -1000, 3]
+    punish = [50, 20, -10, -10, -10, -10, 3]
 
     born = Points(-0.87, 8.50, '8', 'r')
     dest = Points(-5.20, 6.00, '8', 'r')
 
     gridMap = GridMapEnv('./envir/gosper.csv', border_x, border_y, punish)
     (data, points) = gridMap.readData()
-    # gridMap.createVoronoi(points)
-    # gridMap.bornToDes(born, dest)
-    # gridMap.drawGridMap(data['x'].tolist(), data['y'].tolist(), data['color'].tolist())
+    gridMap.createVoronoi(points)
+    gridMap.bornToDes(born, dest)
+    gridMap.drawGridMap(data['x'].tolist(), data['y'].tolist(), data['color'].tolist())
 
 
     agent = Agent(gridMap)
     agent.train(train_episodes=args.train_episodes)
 
-    # 运动,元素，页面跳转
-    rewards = 0
-    gridMap.createState()
+
 
 
 # if __name__ == '__main__':
@@ -208,7 +210,7 @@ if __name__ == "__main__":
 #     # 奖罚,奖励>同级跳转》越级》非父子》跨页后非向下跳转》边界》层级limit
 #     punish = [50,20,-10,-30,-100,-1000,3]
 #
-#     born = Points(-0.87,8.50, '8', 'r')
+#     born = Points(-3.47, 7.0, '', '#2471A3', 'page-info-page','0:04:01:05:02')
 #     dest = Points(-5.20, 6.00, '8', 'r')
 #
 #     gridMap = GridMapEnv('./envir/gosper.csv',border_x,border_y,punish)
@@ -220,55 +222,55 @@ if __name__ == "__main__":
 #     rewards = 0
 #     gridMap.createState()
 #
-#     state,reward,done = gridMap.action(0)
+#     state,reward,done,_ = gridMap.step(0)
 #     gridMap.showTrace()
 #     gridMap.show()
 #     rewards+= reward
 #     print(rewards,gridMap.observation_space)
-#
-#     state,reward,done = gridMap.action( 2)
+# #
+#     state,reward,done,_ = gridMap.step( 2)
 #     gridMap.showTrace()
 #     gridMap.show()
 #     rewards += reward
 #     print(rewards,gridMap.observation_space)
 #
 #
-#     state,reward,done = gridMap.action( 4)
+#     state,reward,done,_ = gridMap.action( 4)
 #     gridMap.showTrace()
 #     gridMap.show()
 #     rewards += reward
 #     print(rewards,gridMap.observation_space)
 #
 #
-#     state,reward,done = gridMap.action( 1)
+#     state,reward,done,_ = gridMap.action( 1)
 #     gridMap.showTrace()
 #     gridMap.show()
 #     rewards += reward
 #     print(rewards,gridMap.observation_space)
 #
 #
-#     state,reward,done = gridMap.action( 3)
+#     state,reward,done,_ = gridMap.action( 3)
 #     gridMap.showTrace()
 #     gridMap.show()
 #     rewards += reward
 #     print(rewards,gridMap.observation_space)
 #
 #
-#     state,reward,done = gridMap.action( 5)
+#     state,reward,done,_ = gridMap.action( 5)
 #     gridMap.showTrace()
 #     gridMap.show()
 #     rewards += reward
 #     print(rewards,gridMap.observation_space)
 #
 #
-#     state,reward,done = gridMap.action( 8)
+#     state,reward,done,_ = gridMap.action( 8)
 #     gridMap.showTrace()
 #     gridMap.show()
 #     rewards += reward
 #     print(rewards,gridMap.observation_space)
 #
 # #页面
-#     state,reward,done = gridMap.action( 6)
+#     state,reward,done,_ = gridMap.action( 6)
 #     gridMap.showTrace()
 #     gridMap.show()
 #     rewards += reward
@@ -276,5 +278,5 @@ if __name__ == "__main__":
 
 
 
-#
+
 #     # https: // blog.csdn.net / november_chopin / article / details / 107913103

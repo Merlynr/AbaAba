@@ -81,34 +81,22 @@ class GridMapEnv:
         # 动作空间，状态特征空间，动作空间3*7,根据当前环境决定
         self.action_space = spaces.Discrete(21)
         # 状态空间的构建,由已完成的 TODO 四个位置+场景名称+当前元素名称
-        low = np.array([[
+        low = np.array([
             self.border_x[0],
+            self.border_y[0], self.border_x[0],
+            self.border_y[0], self.border_x[0],
+            self.border_y[0], self.border_x[0],
             self.border_y[0]
-        ], [
-            self.border_x[0],
-            self.border_y[0]
-        ], [
-            self.border_x[0],
-            self.border_y[0]
-        ], [
-            self.border_x[0],
-            self.border_y[0]
-        ]])
-        high = np.array([[
+        ], dtype=np.float32)
+        high = np.array([
             self.border_x[1],
+            self.border_y[1], self.border_x[1],
+            self.border_y[1], self.border_x[1],
+            self.border_y[1], self.border_x[1],
             self.border_y[1]
-        ], [
-            self.border_x[1],
-            self.border_y[1]
-        ], [
-            self.border_x[1],
-            self.border_y[1]
-        ], [
-            self.border_x[1],
-            self.border_y[1]
-        ]])
+        ], dtype=np.float32)
 
-        self.observation_space = Box(low, high, shape=(4, 2))
+        self.observation_space = Box(low, high)
 
     # read data from csv
     def readData(self):
@@ -464,8 +452,8 @@ class GridMapEnv:
     def getPointInfo(self, point):
         useful_data_0 = self.data[
             (self.data['x'] == point.x) & (self.data['y'] == point.y)]
-        useful_data_1 = self.data[((self.data['x'] - 0.01) == (round((point.x), 2))) & (self.data['y'] == point.y)]
-        useful_data_2 = self.data[((self.data['x'] + 0.01) == (round((point.x), 2))) & (self.data['y'] == point.y)]
+        useful_data_1 = self.data[(self.data['x'] == (round((point.x - 0.01), 2))) & (self.data['y'] == point.y)]
+        useful_data_2 = self.data[(self.data['x'] == (round((point.x + 0.01), 2))) & (self.data['y'] == point.y)]
         # print(useful_data_0, useful_data_1, useful_data_2)
 
         if not useful_data_0.empty:
@@ -481,6 +469,8 @@ class GridMapEnv:
                           useful_data_2['color'].values[0], useful_data_2['element'].values[0],
                           useful_data_2['LOD'].values[0])
         else:
+            print(point)
+            print("useful_data", useful_data_0, useful_data_1, useful_data_2)
             return {}
 
     # DONE 查询page相关结点
@@ -492,25 +482,27 @@ class GridMapEnv:
         obs = []
         trace_file = "./datasets/trace.csv"
         if not os.path.getsize(trace_file):
-            obs = np.zeros((4, 2))
+            a = np.zeros((6,))
+            obs = np.hstack((a, ([self.born.x, self.born.y])))
         else:
             _trace = pd.read_csv(trace_file, usecols=['end_x', 'end_y'])
             if len(_trace) >= 4:
                 obs = [
-                    [_trace.iloc[-4].values[0], _trace.iloc[-4].values[1]],
-                    [_trace.iloc[-3].values[0], _trace.iloc[-3].values[1]],
-                    [_trace.iloc[-2].values[0], _trace.iloc[-2].values[1]],
-                    [_trace.iloc[-1].values[0], _trace.iloc[-1].values[1]]
+                    _trace.iloc[-4].values[0], _trace.iloc[-4].values[1],
+                    _trace.iloc[-3].values[0], _trace.iloc[-3].values[1],
+                    _trace.iloc[-2].values[0], _trace.iloc[-2].values[1],
+                    _trace.iloc[-1].values[0], _trace.iloc[-1].values[1]
                 ]
                 obs = np.array(obs)
 
             if len(_trace) > 0 and len(_trace) < 4:
-                a = np.zeros((4 - len(_trace), 2))
+                a = np.zeros((8 - len(_trace) * 2))
                 b = np.array((_trace['end_x'].values.tolist(), _trace['end_y'].values.tolist()), float)
-                obs = np.vstack((a, b.T))
+                obs = np.hstack((a, b.reshape(-1)))
 
             if len(_trace) == 0:
-                obs = np.zeros((4, 2))
+                a = np.zeros((6,))
+                obs = np.hstack((a, ([self.born.x, self.born.y])))
 
         self.observation_space = obs
         return obs
@@ -525,6 +517,7 @@ class GridMapEnv:
 
     def reset(self):
         # 清空轨迹
+        self.transit = self.born
         open('./datasets/trace.csv', 'w').close()
         return self.createState()
 
