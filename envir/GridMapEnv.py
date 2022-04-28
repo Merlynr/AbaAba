@@ -582,5 +582,6 @@ class GridMapEnv:
         # f=open('', 'r+').close()
         return self.createState()
 
-# TODO 目的地中止，
 # TODO linux读取模型
+# TODO 条件点认证
+# TODO 超参数进行调节，lr和e普赛楼的设置

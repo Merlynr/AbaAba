@@ -1,4 +1,7 @@
-#%%
+# %%
+import os
+
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 import argparse
 import datetime
 import random
@@ -7,6 +10,7 @@ import time
 import numpy as np
 import tensorflow as tf
 import tensorlayer as tl
+from tensorflow import  keras
 
 from envir.GridMapEnv import GridMapEnv, Points
 
@@ -15,7 +19,7 @@ parser.add_argument('--train', dest='train', default=False)
 parser.add_argument('--test', dest='test', default=False)
 
 parser.add_argument('--gamma', type=float, default=0.95)
-parser.add_argument('--lr', type=float, default=0.005)
+parser.add_argument('--learning_rate', type=float, default=0.001)
 parser.add_argument('--batch_size', type=int, default=32)
 parser.add_argument('--eps', type=float, default=0.1)
 
@@ -25,21 +29,15 @@ args = parser.parse_args()
 
 ALG_NAME = 'DQN'
 ENV_ID = 'GridMapEnv'
-#%%
-#GPU
+# %%
 # GPU
-print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
-
-import os
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-
-os.environ["SDL_VIDEODRIVER"] = "dummy"
-
-config =  tf.compat.v1.ConfigProto()
-config.gpu_options.allow_growth=True
-config.gpu_options.per_process_gpu_memory_fraction = 0.9 # 占用GPU90%的显存
+config = tf.compat.v1.ConfigProto()
+config.gpu_options.allow_growth = True
+config.gpu_options.per_process_gpu_memory_fraction = 0.9  # 占用GPU90%的显存
 sess = tf.compat.v1.Session(config=config)
-#%%
+
+
+# %%
 class ReplayBuffer:
     def __init__(self, capacity=10000):
         self.capacity = capacity
@@ -52,7 +50,7 @@ class ReplayBuffer:
         self.buffer[self.position] = (state, action, reward, next_state, done)
         self.position = int((self.position + 1) % self.capacity)
 
-    def sample(self, batch_size = args.batch_size):
+    def sample(self, batch_size=args.batch_size):
         batch = random.sample(self.buffer, batch_size)
         state, action, reward, next_state, done = map(np.stack, zip(*batch))
         """ 
@@ -62,24 +60,27 @@ class ReplayBuffer:
         np.stack((1,2)) => array([1, 2])
         """
         return state, action, reward, next_state, done
-#%%
+
+
+# %%
 class Agent:
-    def __init__(self,env):
-        self.env=env
+    def __init__(self, env):
+        self.env = env
         self.state_dim = self.env.observation_space.shape[0]
         self.action_dim = self.env.action_space.n
 
         def create_model(input_state_shape):
-            input_layer = tl.layers.Input(input_state_shape)
-            layer_1 = tl.layers.Dense(n_units=64, act=tf.nn.relu)(input_layer)
-            layer_2 = tl.layers.Dense(n_units=32, act=tf.nn.relu)(layer_1)
-            output_layer = tl.layers.Dense(n_units=self.action_dim)(layer_2)
+            input_layer = tl.layers.Input(input_state_shape,name='input_layer')
+            layer_1 = tl.layers.Dense(n_units=64, act=tf.nn.relu,name='layer_1')(input_layer)
+            layer_2 = tl.layers.Dense(n_units=32, act=tf.nn.relu,name='layer_2')(layer_1)
+            output_layer = tl.layers.Dense(n_units=self.action_dim,name='output_layer')(layer_2)
             return tl.models.Model(inputs=input_layer, outputs=output_layer)
+
         self.model = create_model([None, self.state_dim])
         self.target_model = create_model([None, self.state_dim])
         self.model.train()
         self.target_model.eval()
-        self.model_optim = self.target_model_optim = tf.optimizers.Adam(lr=args.lr)
+        self.model_optim = self.target_model_optim = tf.optimizers.Adam(lr=args.learning_rate)
 
         self.epsilon = args.eps
 
@@ -126,6 +127,7 @@ class Agent:
             self.env.bornToDes()
             self.env.drawGridMap()
             while done:
+                self.model.is_train=False
                 action = self.model(np.array([state], dtype=np.float32))[0]
                 action = np.argmax(action)
                 next_state, reward, done, _ = self.env.step(action)
@@ -138,7 +140,7 @@ class Agent:
                 self.env.reset()
             print("Test {} | episode rewards is {}".format(episode, total_reward))
 
-    def train(self, train_episodes=200):
+    def train(self, train_episodes=20):
         if args.train:
             Dispaly_interval = 100
             current_time = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -174,10 +176,9 @@ class Agent:
                 if not done:
                     self.env.reset()
                 if len(self.buffer.buffer) > args.batch_size:
-                    print(len(self.buffer.buffer))
                     self.replay()
                     self.target_update()
-                print('EP{} EpisodeReward={}'.format(episode, total_reward),'\n')
+                print('EP{} EpisodeReward={}'.format(episode, total_reward), '\n')
                 # if episode % 10 == 0:
                 #     self.test_episode()
             self.saveModel()
@@ -189,21 +190,25 @@ class Agent:
         path = os.path.join('model', '_'.join([ALG_NAME, ENV_ID]))
         if not os.path.exists(path):
             os.makedirs(path)
-        tl.files.save_weights_to_hdf5(os.path.join(path, 'model.hdf5'), self.model)
-        tl.files.save_weights_to_hdf5(os.path.join(path, 'target_model.hdf5'), self.target_model)
+        # tl.files.save_weights_to_hdf5(os.path.join(path, 'model.hdf5'), self.model)
+        # tl.files.save_weights_to_hdf5(os.path.join(path, 'target_model.hdf5'), self.target_model)
+        tl.files.save_npz(self.model.all_weights,name=os.path.join(path, 'model.npz'))
+        tl.files.save_npz(self.target_model.all_weights,name=os.path.join(path, 'target_model.npz'))
+
         print('Saved weights.')
 
     def loadModel(self):
         path = os.path.join('model', '_'.join([ALG_NAME, ENV_ID]))
-        print(path)
         if os.path.exists(path):
             print('Load DQN Network parametets ...')
-            tl.files.load_hdf5_to_weights_in_order(os.path.join(path, 'model.hdf5'), self.model)
-            tl.files.load_hdf5_to_weights_in_order(os.path.join(path, 'target_model.hdf5'), self.target_model)
+            # tl.files.load_hdf5_to_weights(os.path.join(path, 'model.hdf5'), self.model,skip=True)
+            # tl.files.load_hdf5_to_weights(os.path.join(path, 'target_model.hdf5'), self.target_model,skip=True)
+            tl.files.load_and_assign_npz(name=os.path.join(path, 'model.npz'),network=self.model)
+            tl.files.load_and_assign_npz(name=os.path.join(path, 'target_model.npz'),network=self.target_model)
             print('Load weights!')
         else: print("No model file find, please train model first...")
 
-#%%
+# %%
 if __name__ == "__main__":
     # 设置边界
     border_x = [-10, 3]
@@ -220,12 +225,9 @@ if __name__ == "__main__":
     # gridMap.bornToDes(born, dest)
     # gridMap.drawGridMap(data['x'].tolist(), data['y'].tolist(), data['color'].tolist())
 
-    rewards=0
+    rewards = 0
     agent = Agent(gridMap)
     agent.train()
-
-
-
 
 # if __name__ == '__main__':
 #     # 设置边界
@@ -299,8 +301,6 @@ if __name__ == "__main__":
 #     gridMap.show()
 #     rewards += reward
 #     print(rewards,gridMap.observation_space)
-
-
 
 
 #     # https: // blog.csdn.net / november_chopin / article / details / 107913103
