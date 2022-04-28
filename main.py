@@ -1,5 +1,6 @@
 #%%
 import argparse
+import datetime
 import random
 import time
 
@@ -10,7 +11,7 @@ import tensorlayer as tl
 from envir.GridMapEnv import GridMapEnv, Points
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--train', dest='train', default=True)
+parser.add_argument('--train', dest='train', default=False)
 parser.add_argument('--test', dest='test', default=False)
 
 parser.add_argument('--gamma', type=float, default=0.95)
@@ -94,7 +95,6 @@ class Agent:
         if np.random.uniform() < self.epsilon:
             return np.random.choice(self.action_dim)
         else:
-            # TODO 超出实际
             q_value = self.model(state[np.newaxis, :])[0]
             return np.argmax(q_value)
 
@@ -122,21 +122,40 @@ class Agent:
         for episode in range(test_episodes):
             state = self.env.reset().astype(np.float32)
             total_reward, done = 0, True
+            self.env.createVoronoi()
+            self.env.bornToDes()
+            self.env.drawGridMap()
             while done:
                 action = self.model(np.array([state], dtype=np.float32))[0]
                 action = np.argmax(action)
                 next_state, reward, done, _ = self.env.step(action)
                 next_state = next_state.astype(np.float32)
-
+                # self.env.showTrace()
                 total_reward += reward
                 state = next_state
                 # self.env.render()
+            if not done:
+                self.env.reset()
             print("Test {} | episode rewards is {}".format(episode, total_reward))
 
     def train(self, train_episodes=200):
-        print(train_episodes)
         if args.train:
+            Dispaly_interval = 100
+            current_time = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+            log_dir = 'logs/dqn/' + current_time
+            summary_writer = tf.summary.create_file_writer(log_dir)
+            total_reward, done = 0, True
+            total_rewards = np.empty(train_episodes)
             for episode in range(train_episodes):
+                # if episode>0:
+                avg_rewards = total_rewards[max(0, episode - Dispaly_interval):(episode + 1)].mean()
+                # else:
+                #     avg_rewards = 0
+                total_rewards[episode] = total_reward
+                with summary_writer.as_default():
+                    tf.summary.scalar('episode reward', total_reward, step=episode)
+                    tf.summary.scalar('running avg reward(100)', avg_rewards, step=episode)
+                    # tf.summary.scalar('average loss)', losses, step=episode)
                 total_reward, done = 0, True
                 state = self.env.reset().astype(np.float32)
                 self.env.createVoronoi()
@@ -155,6 +174,7 @@ class Agent:
                 if not done:
                     self.env.reset()
                 if len(self.buffer.buffer) > args.batch_size:
+                    print(len(self.buffer.buffer))
                     self.replay()
                     self.target_update()
                 print('EP{} EpisodeReward={}'.format(episode, total_reward),'\n')
