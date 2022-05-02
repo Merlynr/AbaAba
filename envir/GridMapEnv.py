@@ -60,7 +60,7 @@ class GridMapEnv:
         self.transit = Points()
 
         super(GridMapEnv, self).__init__()
-        self.file = './envir/gosper.csv'
+        self.file = "D:\\project\\AbaAba\\envir\\gosper.csv"
         # self.figure = plt.figure()
         self.trace = []
         self.mathTools = MathTools()
@@ -73,7 +73,7 @@ class GridMapEnv:
         self.border_x = [-10, 3]
         self.border_y = [1, 14]
         # 惩罚# 奖罚,奖励>同级跳转》越级》非父子》跨页后非向下跳转》边界》层级limit
-        self.punish = [50, 20, -1000, -1000, -1000, -1000, 3]
+        self.punish = [50, 20, -1000, -1000, -1000, -1000, 1]
         self.data = {}
         # 跨页flag
         self.isToPageThenStep = 0
@@ -97,6 +97,7 @@ class GridMapEnv:
 
         self.observation_space = Box(low, high)
 
+        self.readData()
         self.createVoronoi()
         self.bornToDes()
         self.drawGridMap()
@@ -149,11 +150,11 @@ class GridMapEnv:
     def drawGridMap(self):
         (data, points) = self.readData()
         plt.scatter(data['x'].tolist(), data['y'].tolist(), color=data['color'].tolist(), s=320, marker='8')
-        # plt.plot(x, y)
+        plt.plot(data['x'].tolist(), data['y'].tolist())
         # plt.axis([-18, 8, -2, 22])
         plt.axis([-11, 4, 0.5, 14.5])
         # plt.xlim([-9,0]), plt.ylim([3,12])
-        plt.savefig('./output/voro.png')
+        # plt.savefig('./output/voro.png')
         # plt.show()
 
     # demo
@@ -205,8 +206,8 @@ class GridMapEnv:
 
     # init don
     def bornToDes(self):
-        self.born = Points(1.73,13.00,'8','r')
-        self.dest = Points(-8.66,5.00, '8', 'r')
+        self.born = Points(1.73, 13.00, '8', 'r')
+        self.dest = Points(1.73, 11.00, '8', 'r')
         self.transit = self.born
         plt.plot(self.born.x, self.born.y, marker=self.born.s, color=self.born.c)
         plt.plot(self.dest.x, self.dest.y, marker=self.dest.s, color=self.dest.c)
@@ -257,7 +258,8 @@ class GridMapEnv:
             # self.againstRules(tp)
             reward, done = self.acrossSide(self.transit, tp)
             self.saveTrace()
-            if self.transit == self.getPointInfo(self.dest):
+            if self.transit.__dict__ == self.getPointInfo(self.dest).__dict__ and reward > 0 :
+                print("======》逃之夭夭====》")
                 return self.createState(), 100, False, self.transit
             return self.createState(), reward, done, self.transit
 
@@ -274,7 +276,8 @@ class GridMapEnv:
             self.trace.append(tp)
             reward, done = self.acrossSide(self.transit, tp)
             self.saveTrace()
-            if self.transit == self.getPointInfo(self.dest):
+            if self.transit.__dict__ == self.getPointInfo(self.dest).__dict__ and reward > 0:
+                print("======》逃之夭夭====》")
                 return self.createState(), 100, False, self.transit
             return self.createState(), reward, done, self.transit
 
@@ -292,7 +295,8 @@ class GridMapEnv:
             self.trace.append(tp)
             reward, done = self.acrossSide(self.transit, tp)
             self.saveTrace()
-            if self.transit == self.getPointInfo(self.dest):
+            if self.transit.__dict__ == self.getPointInfo(self.dest).__dict__ and reward > 0:
+                print("======》逃之夭夭====》")
                 return self.createState(), 100, False, self.transit
             return self.createState(), reward, done, self.transit
 
@@ -310,7 +314,8 @@ class GridMapEnv:
             self.trace.append(tp)
             reward, done = self.acrossSide(self.transit, tp)
             self.saveTrace()
-            if self.transit == self.getPointInfo(self.dest):
+            if self.transit.__dict__ == self.getPointInfo(self.dest).__dict__ and reward > 0:
+                print("======》逃之夭夭====》")
                 return self.createState(), 100, False, self.transit
             return self.createState(), reward, done, self.transit
 
@@ -328,7 +333,8 @@ class GridMapEnv:
             self.trace.append(tp)
             reward, done = self.acrossSide(self.transit, tp)
             self.saveTrace()
-            if self.transit == self.getPointInfo(self.dest):
+            if self.transit.__dict__ == self.getPointInfo(self.dest).__dict__ and reward > 0:
+                print("======》逃之夭夭====》")
                 return self.createState(), 100, False, self.transit
             return self.createState(), reward, done, self.transit
 
@@ -346,7 +352,8 @@ class GridMapEnv:
             self.trace.append(tp)
             reward, done = self.acrossSide(self.transit, tp)
             self.saveTrace()
-            if self.transit == self.getPointInfo(self.dest):
+            if self.transit.__dict__ == self.getPointInfo(self.dest).__dict__ and reward > 0:
+                print("======》逃之夭夭====》")
                 return self.createState(), 100, False, self.transit
             return self.createState(), reward, done, self.transit
 
@@ -371,7 +378,9 @@ class GridMapEnv:
                 reward, done = self.acrossSide(self.transit, tp)
                 self.isToPageThenStep = 1
                 self.saveTrace()
-                if self.transit == self.getPointInfo(self.dest):
+                if self.transit.__dict__ == self.getPointInfo(self.dest).__dict__ and reward > 0:
+                    # 任务完成
+                    print("======》逃之夭夭====》")
                     return self.createState(), 100, False, self.transit
                 return self.createState(), reward, done, self.transit
 
@@ -457,7 +466,7 @@ class GridMapEnv:
         # LOD,相差为0即为同级，比较上一级
         LOD_l = abs(len(s) - len(e))
         # 非同级
-        if LOD_l < self.punish[6]:
+        if LOD_l <= self.punish[6]:
             # 向下
             if isLoger:
                 # 同级
@@ -521,7 +530,6 @@ class GridMapEnv:
                           useful_data_2['color'].values[0], useful_data_2['element'].values[0],
                           useful_data_2['LOD'].values[0])
         else:
-            print("useful_data", useful_data_0, useful_data_1, useful_data_2)
             print("跳出数据集")
             return "taoyi"
 
@@ -532,7 +540,7 @@ class GridMapEnv:
 
     def createState(self):
         obs = []
-        trace_file = "./datasets/trace.csv"
+        trace_file = "D:\\project\\AbaAba\\datasets\\trace.csv"
         if not os.path.getsize(trace_file):
             a = np.zeros((6,))
             obs = np.hstack((a, ([self.born.x, self.born.y])))

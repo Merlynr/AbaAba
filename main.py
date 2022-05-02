@@ -10,7 +10,7 @@ import time
 import numpy as np
 import tensorflow as tf
 import tensorlayer as tl
-from tensorflow import  keras
+from tensorflow import keras
 
 from envir.GridMapEnv import GridMapEnv, Points
 
@@ -18,10 +18,10 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--train', dest='train', default=False)
 parser.add_argument('--test', dest='test', default=False)
 
-parser.add_argument('--gamma', type=float, default=0.95)
+parser.add_argument('--gamma', type=float, default=0.85)
 parser.add_argument('--learning_rate', type=float, default=0.001)
-parser.add_argument('--batch_size', type=int, default=32)
-parser.add_argument('--eps', type=float, default=0.1)
+parser.add_argument('--batch_size', type=int, default=8)
+parser.add_argument('--eps', type=float, default=0.6)
 
 parser.add_argument('--train_episodes', type=int, default=200)
 parser.add_argument('--test_episodes', type=int, default=10)
@@ -71,8 +71,8 @@ class Agent:
 
         def create_model(input_state_shape):
             input_layer = tl.layers.Input(input_state_shape,name='input_layer')
-            layer_1 = tl.layers.Dense(n_units=64, act=tf.nn.relu,name='layer_1')(input_layer)
-            layer_2 = tl.layers.Dense(n_units=32, act=tf.nn.relu,name='layer_2')(layer_1)
+            layer_1 = tl.layers.Dense(n_units=64, act=tf.nn.leaky_relu,name='layer_1')(input_layer)
+            layer_2 = tl.layers.Dense(n_units=32, act=tf.nn.leaky_relu,name='layer_2')(layer_1)
             output_layer = tl.layers.Dense(n_units=self.action_dim,name='output_layer')(layer_2)
             return tl.models.Model(inputs=input_layer, outputs=output_layer)
 
@@ -140,7 +140,7 @@ class Agent:
                 self.env.reset()
             print("Test {} | episode rewards is {}".format(episode, total_reward))
 
-    def train(self, train_episodes=20):
+    def train(self, train_episodes=200):
         if args.train:
             Dispaly_interval = 100
             current_time = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -173,14 +173,13 @@ class Agent:
                     self.buffer.push(state, action, reward, next_state, done)
                     total_reward += reward
                     state = next_state
-                if not done:
-                    self.env.reset()
                 if len(self.buffer.buffer) > args.batch_size:
                     self.replay()
                     self.target_update()
                 print('EP{} EpisodeReward={}'.format(episode, total_reward), '\n')
                 # if episode % 10 == 0:
                 #     self.test_episode()
+            self.env.reset()
             self.saveModel()
         if args.test:
             self.loadModel()
