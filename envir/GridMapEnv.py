@@ -60,7 +60,7 @@ class GridMapEnv:
         self.transit = Points()
 
         super(GridMapEnv, self).__init__()
-        self.file = "D:\\project\\AbaAba\\envir\\gosper.csv"
+        self.file = "./envir/gosper.csv"
         # self.figure = plt.figure()
         self.trace = []
         self.mathTools = MathTools()
@@ -73,7 +73,7 @@ class GridMapEnv:
         self.border_x = [-10, 3]
         self.border_y = [1, 14]
         # 惩罚# 奖罚,奖励>同级跳转》越级》非父子》跨页后非向下跳转》边界》层级limit
-        self.punish = [50, 20, -1000, -1000, -1000, -1000, 1]
+        self.punish = [50, 20, -100, -100, -100, -100, 1]
         self.data = {}
         # 跨页flag
         self.isToPageThenStep = 0
@@ -82,16 +82,14 @@ class GridMapEnv:
         # 状态空间的构建,由已完成的 TODO 四个位置+场景名称+当前元素名称
         low = np.array([
             self.border_x[0],
-            self.border_y[0], self.border_x[0],
-            self.border_y[0], self.border_x[0],
-            self.border_y[0], self.border_x[0],
+            self.border_y[0],self.border_x[0],
+            self.border_y[0],self.border_x[0],
             self.border_y[0]
         ], dtype=np.float32)
         high = np.array([
             self.border_x[1],
-            self.border_y[1], self.border_x[1],
-            self.border_y[1], self.border_x[1],
-            self.border_y[1], self.border_x[1],
+            self.border_y[1],self.border_x[1],
+            self.border_y[1],self.border_x[1],
             self.border_y[1]
         ], dtype=np.float32)
 
@@ -249,7 +247,7 @@ class GridMapEnv:
         tp.start_point = copy.copy(self.transit)
         self.transit.y += round(1 * step, 2)
         if self.getPointInfo(self.transit) == 'taoyi':
-            return self.createState(), -1000, False, self.transit
+            return self.createState(), -100, False, self.transit
         else:
             self.transit = self.getPointInfo(self.transit)
             tp.end_point = copy.copy(self.transit)
@@ -269,7 +267,7 @@ class GridMapEnv:
         tp.start_point = copy.copy(self.transit)
         self.transit.y -= round(1 * step, 2)
         if self.getPointInfo(self.transit) == 'taoyi':
-            return self.createState(), -1000, False, self.transit
+            return self.createState(), -100, False, self.transit
         else:
             self.transit = self.getPointInfo(self.transit)
             tp.end_point = copy.copy(self.transit)
@@ -288,7 +286,7 @@ class GridMapEnv:
         self.transit.y += round(self.mathTools.sin * step, 2)
         self.transit.x -= round(self.mathTools.cos * step, 2)
         if self.getPointInfo(self.transit) == 'taoyi':
-            return self.createState(), -1000, False, self.transit
+            return self.createState(), -100, False, self.transit
         else:
             self.transit = self.getPointInfo(self.transit)
             tp.end_point = copy.copy(self.transit)
@@ -307,7 +305,7 @@ class GridMapEnv:
         self.transit.y -= round(self.mathTools.sin * step, 2)
         self.transit.x += round(self.mathTools.cos * step, 2)
         if self.getPointInfo(self.transit) == 'taoyi':
-            return self.createState(), -1000, False, self.transit
+            return self.createState(), -100, False, self.transit
         else:
             self.transit = self.getPointInfo(self.transit)
             tp.end_point = copy.copy(self.transit)
@@ -326,7 +324,7 @@ class GridMapEnv:
         self.transit.y -= round(self.mathTools.sin * step, 2)
         self.transit.x -= round(self.mathTools.cos * step, 2)
         if self.getPointInfo(self.transit) == 'taoyi':
-            return self.createState(), -1000, False, self.transit
+            return self.createState(), -100, False, self.transit
         else:
             self.transit = self.getPointInfo(self.transit)
             tp.end_point = copy.copy(self.transit)
@@ -345,7 +343,7 @@ class GridMapEnv:
         self.transit.y += round(self.mathTools.sin * step, 2)
         self.transit.x += round(self.mathTools.cos * step, 2)
         if self.getPointInfo(self.transit) == 'taoyi':
-            return self.createState(), -1000, False, self.transit
+            return self.createState(), -100, False, self.transit
         else:
             self.transit = self.getPointInfo(self.transit)
             tp.end_point = copy.copy(self.transit)
@@ -364,12 +362,12 @@ class GridMapEnv:
         if (pageNum + 1) >= len(pageNums):
             # 负奖励 无效跨页
             print("无效页面跨页，负奖励")
-            return self.createState(), -1000, False, self.transit
+            return self.createState(), -100, False, self.transit
         else:
             tp = TracePart({}, {})
             tp.start_point = copy.copy(self.transit)
             if self.getPointInfo(Point(pageNums.iloc[pageNum].values[1], pageNums.iloc[pageNum].values[2])) == 'taoyi':
-                return self.createState(), -1000, False, self.transit
+                return self.createState(), -100, False, self.transit
             else:
                 self.transit = self.getPointInfo(
                     Point(pageNums.iloc[pageNum].values[1], pageNums.iloc[pageNum].values[2]))
@@ -540,10 +538,11 @@ class GridMapEnv:
 
     def createState(self):
         obs = []
-        trace_file = "D:\\project\\AbaAba\\datasets\\trace.csv"
+        trace_file = "./datasets/trace.csv"
         if not os.path.getsize(trace_file):
             a = np.zeros((6,))
             obs = np.hstack((a, ([self.born.x, self.born.y])))
+            # obs = np.array([self.born.x, self.born.y])
         else:
             _trace = pd.read_csv(trace_file, usecols=['end_x', 'end_y'])
             if len(_trace) >= 4:
@@ -559,7 +558,7 @@ class GridMapEnv:
                 a = np.zeros((8 - len(_trace) * 2))
                 b = np.array((_trace['end_x'].values.tolist(), _trace['end_y'].values.tolist()), float)
                 obs = np.hstack((a, b.reshape(-1)))
-
+            #
             if len(_trace) == 0:
                 a = np.zeros((6,))
                 obs = np.hstack((a, ([self.born.x, self.born.y])))
