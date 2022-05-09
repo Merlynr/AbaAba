@@ -1,0 +1,5 @@
+[default]
+entity = merlynr
+project = dqn
+base_url = https://api.wandb.ai
+

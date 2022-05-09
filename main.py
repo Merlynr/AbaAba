@@ -19,9 +19,9 @@ parser.add_argument('--train', dest='train', default=False)
 parser.add_argument('--test', dest='test', default=False)
 
 parser.add_argument('--gamma', type=float, default=0.85)
-parser.add_argument('--learning_rate', type=float, default=0.001)
+parser.add_argument('--learning_rate', type=float, default=0.00001)
 parser.add_argument('--batch_size', type=int, default=8)
-parser.add_argument('--eps', type=float, default=0.6)
+parser.add_argument('--eps', type=float, default=0.1)
 
 parser.add_argument('--train_episodes', type=int, default=200)
 parser.add_argument('--test_episodes', type=int, default=10)
@@ -260,35 +260,35 @@ if __name__ == "__main__":
 #     print(rewards,gridMap.observation_space)
 #
 #
-#     state,reward,done,_ = gridMap.action( 4)
+#     state,reward,done,_ = gridMap.step( 4)
 #     gridMap.showTrace()
 #     gridMap.show()
 #     rewards += reward
 #     print(rewards,gridMap.observation_space)
 #
 #
-#     state,reward,done,_ = gridMap.action( 1)
+#     state,reward,done,_ = gridMap.step( 1)
 #     gridMap.showTrace()
 #     gridMap.show()
 #     rewards += reward
 #     print(rewards,gridMap.observation_space)
 #
 #
-#     state,reward,done,_ = gridMap.action( 3)
+#     state,reward,done,_ = gridMap.step( 3)
 #     gridMap.showTrace()
 #     gridMap.show()
 #     rewards += reward
 #     print(rewards,gridMap.observation_space)
 #
 #
-#     state,reward,done,_ = gridMap.action( 5)
+#     state,reward,done,_ = gridMap.step( 5)
 #     gridMap.showTrace()
 #     gridMap.show()
 #     rewards += reward
 #     print(rewards,gridMap.observation_space)
 #
 #
-#     state,reward,done,_ = gridMap.action( 8)
+#     state,reward,done,_ = gridMap.step( 8)
 #     gridMap.showTrace()
 #     gridMap.show()
 #     rewards += reward

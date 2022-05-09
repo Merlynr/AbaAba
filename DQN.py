@@ -1,3 +1,5 @@
+import datetime
+
 import tensorflow as tf
 import numpy as np
 import tensorflow.keras as keras
@@ -6,28 +8,30 @@ from collections import deque
 
 from envir.GridMapEnv import GridMapEnv
 
-episodes = 2000
+episodes = 3000
 episode_rewards = []
 env = GridMapEnv()
-min_epsilon = 0.01
+min_epsilon = 0.1
 epsilon = 1
 decay_rate = 0.995
-epsilon_decay = (1 - min_epsilon) / 2000
+epsilon_decay = (1 - min_epsilon) / 2100
 max_reward = 0
 experience_replay = deque(maxlen=20000)
 batch_size = 32
 gamma = 0.9
-learning_rate = 0.0001
+learning_rate = 0.00001
 save_graph = True
 fixed_q_value_steps = 100
 current_steps = 0
+step_limit=150
 template = 'episode: {}, rewards: {:.2f}, max reward: {}, mean_rewards: {:.2f}, epsilon: {:.2f}'
+
 
 def create_model():
     model = keras.Sequential([
-        keras.layers.Dense(128, activation='relu', input_shape=(8,)),
-        keras.layers.Dense(128, activation='relu'),
-        keras.layers.Dense(21, activation='relu')]
+        keras.layers.Dense(64, activation='relu', input_shape=(6,)),
+        keras.layers.Dense(32, activation='relu'),
+        keras.layers.Dense(21)]
     )
     model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate),
                   loss='mse',
@@ -37,6 +41,7 @@ def create_model():
 
 model = create_model()
 target_model = create_model()
+
 
 def training(model):
     # training
@@ -60,11 +65,14 @@ def training(model):
         model.fit(buffer_state, y, epochs=32, verbose=0)
 
 
+current_time = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+log_dir = 'logs/dqn/' + current_time
+summary_writer = tf.summary.create_file_writer(log_dir)
 for episode in range(episodes):
 
     rewards = 0
     state = env.reset()
-    state = np.reshape(state, [1,8])
+    state = np.reshape(state, [1, 6])
     env.createVoronoi()
     env.bornToDes()
     env.drawGridMap()
@@ -75,22 +83,29 @@ for episode in range(episodes):
         random_number = np.random.sample()
         if random_number > epsilon:
             action = np.argmax(model(state).numpy()[0])
+                # np.argmax(model.predict(state))
+            print("from state", action)
         else:
-            action = np.random.randint(2)
+            action = np.random.randint(21)
+            print("from random", action)
         if epsilon > min_epsilon:
             epsilon = epsilon - epsilon_decay
         next_state, reward, done, _ = env.step(action)
         rewards += reward
-        next_state = np.reshape(next_state, [1,8])
-        reward = -10 if done else reward
+        next_state = np.reshape(next_state, [1, 6])
+        # reward = -10 if done else reward
         experience_replay.append((state, action, reward, next_state, done))
 
         state = next_state
-        if not done:
+        if (not done) or rewards >= step_limit:
             episode_rewards.append(rewards)
             max_reward = max(max_reward, rewards)
+            # if episode % 50 == 0:
             print(template.format(episode, rewards, max_reward, tf.reduce_mean(episode_rewards).numpy(), epsilon))
             training(model)
+            with summary_writer.as_default():
+                tf.summary.scalar('episode reward[s]', rewards, step=episode)
+                tf.summary.scalar('running avg reward', tf.reduce_mean(episode_rewards).numpy(), step=episode)
             break
     if (episode + 1) % 50 == 0:
         model.save('./model/DQN/dqn_model.h5')
