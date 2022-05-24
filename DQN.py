@@ -1,12 +1,19 @@
 import datetime
+import os
 
 import tensorflow as tf
 import numpy as np
 import tensorflow.keras as keras
 import pylab
 from collections import deque
+from rich.progress import track
 
-from envir.GridMapEnv import GridMapEnv
+from envir.GridMapEnv_2 import GridMapEnv
+
+# os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+# gpus = tf.config.experimental.list_physical_devices(device_type='GPU')
+# assert len(gpus) > 0
+# tf.config.experimental.set_memory_growth(gpus[0], True)
 
 episodes = 3000
 episode_rewards = []
@@ -17,13 +24,13 @@ decay_rate = 0.995
 epsilon_decay = (1 - min_epsilon) / 2100
 max_reward = 0
 experience_replay = deque(maxlen=20000)
-batch_size = 32
+batch_size = 64
 gamma = 0.9
-learning_rate = 0.00001
+learning_rate = 0.001
 save_graph = True
 fixed_q_value_steps = 100
 current_steps = 0
-step_limit=150
+step_limit=4
 template = 'episode: {}, rewards: {:.2f}, max reward: {}, mean_rewards: {:.2f}, epsilon: {:.2f}'
 
 
@@ -68,7 +75,7 @@ def training(model):
 current_time = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 log_dir = 'logs/dqn/' + current_time
 summary_writer = tf.summary.create_file_writer(log_dir)
-for episode in range(episodes):
+for episode in track(range(episodes)):
 
     rewards = 0
     state = env.reset()
@@ -84,10 +91,10 @@ for episode in range(episodes):
         if random_number > epsilon:
             action = np.argmax(model(state).numpy()[0])
                 # np.argmax(model.predict(state))
-            print("from state", action)
+            # print("from state", action)
         else:
             action = np.random.randint(21)
-            print("from random", action)
+            # print("from random", action)
         if epsilon > min_epsilon:
             epsilon = epsilon - epsilon_decay
         next_state, reward, done, _ = env.step(action)
@@ -100,8 +107,8 @@ for episode in range(episodes):
         if (not done) or rewards >= step_limit:
             episode_rewards.append(rewards)
             max_reward = max(max_reward, rewards)
-            # if episode % 50 == 0:
-            print(template.format(episode, rewards, max_reward, tf.reduce_mean(episode_rewards).numpy(), epsilon))
+            if episode % 50 == 0:
+                print(template.format(episode, rewards, max_reward, tf.reduce_mean(episode_rewards).numpy(), epsilon))
             training(model)
             with summary_writer.as_default():
                 tf.summary.scalar('episode reward[s]', rewards, step=episode)

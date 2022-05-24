@@ -10,25 +10,25 @@ import random
 import time
 from collections import deque
 
-from envir.GridMapEnv import GridMapEnv
-
+from envir.GridMapEnv_1 import GridMapEnv
+from rich.progress import track
 start_time = time.time()
 
-episodes = 3000
+episodes = 5000
 episode_rewards = []
 average_rewards = []
 max_reward = 0
 max_average_reward = 0
-step_limit = 500
+step_limit = 27
 env = GridMapEnv()
 state_size = env.observation_space.shape[0]
 action_size = env.action_space.n
 template = 'episode: {}, rewards: {:.2f}, max reward: {}, mean_rewards: {}, epsilon: {}'
 
-# os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-# gpus = tf.config.experimental.list_physical_devices(device_type='GPU')
-# assert len(gpus) > 0
-# tf.config.experimental.set_memory_growth(gpus[0], True)
+os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+gpus = tf.config.experimental.list_physical_devices(device_type='GPU')
+assert len(gpus) > 0
+tf.config.experimental.set_memory_growth(gpus[0], True)
 
 
 class DQNAgent:
@@ -47,7 +47,7 @@ class DQNAgent:
         self.initial_epsilon = 1.0
         self.epsilon = self.initial_epsilon
         self.min_epsilon = 0.1
-        self.linear_annealed = (self.initial_epsilon - self.min_epsilon) / 900
+        self.linear_annealed = (self.initial_epsilon - self.min_epsilon) / 3500
         self.decay_rate = 0.995
 
         # check the hyperparameters
@@ -64,7 +64,7 @@ class DQNAgent:
             self.epsilon = self.min_epsilon
             self.load_model = True
         # fixed q value - two networks
-        self.learning_rate = 0.0001
+        self.learning_rate = 0.001
         self.fixed_q_value_steps = 100
         self.target_network_counter = 0
         if self.load_model:
@@ -75,9 +75,9 @@ class DQNAgent:
             self.target_model = self.create_model()
 
         # experience replay
-        self.experience_replay = deque(maxlen=100000)
+        self.experience_replay = deque(maxlen=1000000)
         self.batch_size = 64
-        self.gamma = 0.9
+        self.gamma = 0.99
         self.replay_start_size = 320
 
     def create_model(self):
@@ -182,7 +182,7 @@ log_dir = 'logs/ddqn/' + current_time
 summary_writer = tf.summary.create_file_writer(log_dir)
 agent = DQNAgent()
 if agent.isTraining:
-    for episode in range(episodes):
+    for episode in track(range(episodes)):
         rewards = 0
         state = env.reset()
         state = np.reshape(state, [1, 6])

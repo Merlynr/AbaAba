@@ -270,7 +270,7 @@ class GridMapEnv:
             reward, done = self.acrossSide(self.transit, tp)
             self.saveTrace()
             if self.transit.__dict__ == self.getPointInfo(self.dest).__dict__ and reward > 0 :
-                # print("======》逃之夭夭====》")
+                print("======》逃之夭夭====》")
                 return self.observation_space, 100, False, self.transit
             else:
                 return self.observation_space, reward, done, self.transit
@@ -297,7 +297,7 @@ class GridMapEnv:
             reward, done = self.acrossSide(self.transit, tp)
             self.saveTrace()
             if self.transit.__dict__ == self.getPointInfo(self.dest).__dict__ and reward > 0:
-                # print("======》逃之夭夭====》")
+                print("======》逃之夭夭====》")
                 return self.observation_space, 100, False, self.transit
             else:
                 return self.observation_space, reward, done, self.transit
@@ -325,7 +325,7 @@ class GridMapEnv:
             reward, done = self.acrossSide(self.transit, tp)
             self.saveTrace()
             if self.transit.__dict__ == self.getPointInfo(self.dest).__dict__ and reward > 0:
-                # print("======》逃之夭夭====》")
+                print("======》逃之夭夭====》")
                 return self.observation_space, 100, False, self.transit
             else:
                 return self.observation_space, reward, done, self.transit
@@ -353,7 +353,7 @@ class GridMapEnv:
             reward, done = self.acrossSide(self.transit, tp)
             self.saveTrace()
             if self.transit.__dict__ == self.getPointInfo(self.dest).__dict__ and reward > 0:
-                # print("======》逃之夭夭====》")
+                print("======》逃之夭夭====》")
                 return self.observation_space, 100, False, self.transit
             else:
                 return self.observation_space, reward, done, self.transit
@@ -381,7 +381,7 @@ class GridMapEnv:
             reward, done = self.acrossSide(self.transit, tp)
             self.saveTrace()
             if self.transit.__dict__ == self.getPointInfo(self.dest).__dict__ and reward > 0:
-                # print("======》逃之夭夭====》")
+                print("======》逃之夭夭====》")
                 return self.observation_space, 100, False, self.transit
             else:
                 return self.observation_space, reward, done, self.transit
@@ -409,7 +409,7 @@ class GridMapEnv:
             reward, done = self.acrossSide(self.transit, tp)
             self.saveTrace()
             if self.transit.__dict__ == self.getPointInfo(self.dest).__dict__ and reward > 0:
-                # print("======》逃之夭夭====》")
+                print("======》逃之夭夭====》")
                 return self.observation_space, 100, False, self.transit
             else:
                 return self.observation_space, reward, done, self.transit
@@ -445,7 +445,7 @@ class GridMapEnv:
                 self.saveTrace()
                 if self.transit.__dict__ == self.getPointInfo(self.dest).__dict__ and reward > 0:
                     # 任务完成
-                    # print("======》逃之夭夭====》")
+                    print("======》逃之夭夭====》")
                     return self.observation_space, 100, False, self.transit
                 return self.observation_space, reward, done, self.transit
 
