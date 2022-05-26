@@ -25,7 +25,7 @@ from tensorflow.python.ops.numpy_ops import np_random
 
 
 class Points:
-    def __init__(self, x=0.0, y=0.0, style='8', color='#ffffff', ele="@", LOD="0"):
+    def __init__(self, x=0.0, y=0.0, style='8', color='#ffffff', ele="@", LOD=-1):
         self.x = x
         self.y = y
         self.s = style
@@ -79,22 +79,22 @@ class GridMapEnv:
         self.isToPageThenStep = 0
         # 动作空间，状态特征空间，动作空间3*7,根据当前环境决定
         self.action_space = spaces.Discrete(21)
-        # 状态空间的构建,由已完成的 TODO 位置+动作方向【6+1】+动作速度【step,nums】+目标位置
+        # 状态空间的构建,由已完成的 TODO 位置+当前LOD+目的LOD+目标位置,LOD的长度非固定，所以还是选取连续位置
         low = np.array([
             self.border_x[0],
             self.border_y[0],
-            0,
-            0,
+            # self.border_x[0],
+            # self.border_y[0],
             self.border_x[0],
             self.border_y[0],
         ])
         high = np.array([
             self.border_x[1],
             self.border_y[1],
-            6,
-            6,
-            self.border_x[0],
-            self.border_y[0],
+            # self.border_x[1],
+            # self.border_y[1],
+            self.border_x[1],
+            self.border_y[1],
         ])
 
         self.observation_space = Box(low, high)
@@ -212,6 +212,7 @@ class GridMapEnv:
         self.dest = Points(1.73, 11.00, '8', 'r')
         # 0.87, 7.50
         self.transit = self.born
+        self.dest = self.getPointInfo(self.dest)
         plt.plot(self.born.x, self.born.y, marker=self.born.s, color=self.born.c)
         plt.plot(self.dest.x, self.dest.y, marker=self.dest.s, color=self.dest.c)
 
@@ -255,13 +256,13 @@ class GridMapEnv:
         self.observation_space = np.array([
             self.transit.x,
             self.transit.y,
-            0,
-            step,
+            # self.transit.LOD,
+            # self.dest.LOD,
             self.dest.x,
             self.dest.y
         ])
         if self.transit.element == 'taoyi':
-            return self.observation_space, -1, False, self.transit
+            return self.observation_space, -1, False, self.transit.LOD, self.dest.LOD
         else:
             tp.end_point = copy.copy(self.transit)
             self.trace.append(tp)
@@ -269,11 +270,11 @@ class GridMapEnv:
             # self.againstRules(tp)
             reward, done = self.acrossSide(self.transit, tp)
             self.saveTrace()
-            if self.transit.__dict__ == self.getPointInfo(self.dest).__dict__ and reward > 0 :
-                # print("======》逃之夭夭====》")
-                return self.observation_space, 1.01, False, self.transit
+            if self.transit.x == self.dest.x and self.transit.y == self.dest.y and reward > 0:
+                print("======》逃之夭夭====》")
+                return self.observation_space, 10.1, False,self.transit.LOD, self.dest.LOD
             else:
-                return self.observation_space, reward, done, self.transit
+                return self.observation_space, reward, done, self.transit.LOD, self.dest.LOD
 
     def toDOWN(self, step):
         self.transit = self.getPointInfo(self.transit)
@@ -284,23 +285,23 @@ class GridMapEnv:
         self.observation_space = np.array([
             self.transit.x,
             self.transit.y,
-            1,
-            step,
+            # self.transit.LOD,
+            # self.dest.LOD,
             self.dest.x,
             self.dest.y
         ])
         if self.transit.element == 'taoyi':
-            return self.observation_space, -1, False, self.transit
+            return self.observation_space, -1, False, self.transit.LOD, self.dest.LOD
         else:
             tp.end_point = copy.copy(self.transit)
             self.trace.append(tp)
             reward, done = self.acrossSide(self.transit, tp)
             self.saveTrace()
-            if self.transit.__dict__ == self.getPointInfo(self.dest).__dict__ and reward > 0:
-                # print("======》逃之夭夭====》")
-                return self.observation_space, 1.01, False, self.transit
+            if self.transit.x == self.dest.x and self.transit.y == self.dest.y and reward > 0:
+                print("======》逃之夭夭====》")
+                return self.observation_space, 10.1, False, self.transit.LOD, self.dest.LOD
             else:
-                return self.observation_space, reward, done, self.transit
+                return self.observation_space, reward, done, self.transit.LOD, self.dest.LOD
 
     def toLEFTUP(self, step):
         self.transit = self.getPointInfo(self.transit)
@@ -312,23 +313,23 @@ class GridMapEnv:
         self.observation_space = np.array([
             self.transit.x,
             self.transit.y,
-            2,
-            step,
+            # self.transit.LOD,
+            # self.dest.LOD,
             self.dest.x,
             self.dest.y
         ])
         if self.transit.element == 'taoyi':
-            return self.observation_space, -1, False, self.transit
+            return self.observation_space, -1, False, self.transit.LOD, self.dest.LOD
         else:
             tp.end_point = copy.copy(self.transit)
             self.trace.append(tp)
             reward, done = self.acrossSide(self.transit, tp)
             self.saveTrace()
-            if self.transit.__dict__ == self.getPointInfo(self.dest).__dict__ and reward > 0:
-                # print("======》逃之夭夭====》")
-                return self.observation_space, 1.01, False, self.transit
+            if self.transit.x == self.dest.x and self.transit.y == self.dest.y and reward > 0:
+                print("======》逃之夭夭====》")
+                return self.observation_space, 10.1, False, self.transit.LOD, self.dest.LOD
             else:
-                return self.observation_space, reward, done, self.transit
+                return self.observation_space, reward, done, self.transit.LOD, self.dest.LOD
 
     def toRIGHTDOWN(self, step):
         self.transit = self.getPointInfo(self.transit)
@@ -340,23 +341,23 @@ class GridMapEnv:
         self.observation_space = np.array([
             self.transit.x,
             self.transit.y,
-            3,
-            step,
+            # self.transit.LOD,
+            # self.dest.LOD,
             self.dest.x,
             self.dest.y
         ])
         if self.transit.element == 'taoyi':
-            return self.observation_space, -1, False, self.transit
+            return self.observation_space, -1, False, self.transit.LOD, self.dest.LOD
         else:
             tp.end_point = copy.copy(self.transit)
             self.trace.append(tp)
             reward, done = self.acrossSide(self.transit, tp)
             self.saveTrace()
-            if self.transit.__dict__ == self.getPointInfo(self.dest).__dict__ and reward > 0:
-                # print("======》逃之夭夭====》")
-                return self.observation_space, 1.01, False, self.transit
+            if self.transit.x == self.dest.x and self.transit.y == self.dest.y and reward > 0:
+                print("======》逃之夭夭====》")
+                return self.observation_space, 10.1, False, self.transit.LOD, self.dest.LOD
             else:
-                return self.observation_space, reward, done, self.transit
+                return self.observation_space, reward, done, self.transit.LOD, self.dest.LOD
 
     def toLEFTDOWN(self, step):
         self.transit = self.getPointInfo(self.transit)
@@ -368,23 +369,23 @@ class GridMapEnv:
         self.observation_space = np.array([
             self.transit.x,
             self.transit.y,
-            4,
-            step,
+            # self.transit.LOD,
+            # self.dest.LOD,
             self.dest.x,
             self.dest.y
         ])
         if self.transit.element == 'taoyi':
-            return self.observation_space, -1, False, self.transit
+            return self.observation_space, -1, False, self.transit.LOD, self.dest.LOD
         else:
             tp.end_point = copy.copy(self.transit)
             self.trace.append(tp)
             reward, done = self.acrossSide(self.transit, tp)
             self.saveTrace()
-            if self.transit.__dict__ == self.getPointInfo(self.dest).__dict__ and reward > 0:
-                # print("======》逃之夭夭====》")
-                return self.observation_space, 1.01, False, self.transit
+            if self.transit.x == self.dest.x and self.transit.y == self.dest.y and reward > 0:
+                print("======》逃之夭夭====》")
+                return self.observation_space, 10.1, False, self.transit.LOD, self.dest.LOD
             else:
-                return self.observation_space, reward, done, self.transit
+                return self.observation_space, reward, done, self.transit.LOD, self.dest.LOD
 
     def toRIGHTUP(self, step):
         self.transit = self.getPointInfo(self.transit)
@@ -396,23 +397,23 @@ class GridMapEnv:
         self.observation_space = np.array([
             self.transit.x,
             self.transit.y,
-            5,
-            step,
+            # self.transit.LOD,
+            # self.dest.LOD,
             self.dest.x,
             self.dest.y
         ])
         if self.transit.element == 'taoyi':
-            return self.observation_space, -1, False, self.transit
+            return self.observation_space, -1, False, self.transit.LOD, self.dest.LOD
         else:
             tp.end_point = copy.copy(self.transit)
             self.trace.append(tp)
             reward, done = self.acrossSide(self.transit, tp)
             self.saveTrace()
-            if self.transit.__dict__ == self.getPointInfo(self.dest).__dict__ and reward > 0:
-                # print("======》逃之夭夭====》")
-                return self.observation_space, 1.01, False, self.transit
+            if self.transit.x == self.dest.x and self.transit.y == self.dest.y and reward > 0:
+                print("======》逃之夭夭====》")
+                return self.observation_space, 10.1, False, self.transit.LOD, self.dest.LOD
             else:
-                return self.observation_space, reward, done, self.transit
+                return self.observation_space, reward, done, self.transit.LOD, self.dest.LOD
 
     # 页面之间跳转，只能向下
     def toPage(self, pageNum):
@@ -421,20 +422,20 @@ class GridMapEnv:
         self.observation_space = np.array([
             self.transit.x,
             self.transit.y,
-            6,
-            pageNum,
+            # self.transit.LOD,
+            # self.dest.LOD,
             self.dest.x,
             self.dest.y
         ])
         if (pageNum + 1) >= len(pageNums):
             # 负奖励 无效跨页
             # print("无效页面跨页，负奖励")
-            return self.observation_space, -1, False, self.transit
+            return self.observation_space, -1, False, self.transit.LOD, self.dest.LOD
         else:
             tp = TracePart({}, {})
             tp.start_point = copy.copy(self.transit)
             if self.getPointInfo(Point(pageNums.iloc[pageNum].values[1], pageNums.iloc[pageNum].values[2])) == 'taoyi':
-                return self.observation_space, -1, False, self.transit
+                return self.observation_space, -1, False, self.transit.LOD, self.dest.LOD
             else:
                 self.transit = self.getPointInfo(
                     Point(pageNums.iloc[pageNum].values[1], pageNums.iloc[pageNum].values[2]))
@@ -443,11 +444,11 @@ class GridMapEnv:
                 reward, done = self.acrossSide(self.transit, tp)
                 self.isToPageThenStep = 1
                 self.saveTrace()
-                if self.transit.__dict__ == self.getPointInfo(self.dest).__dict__ and reward > 0:
+                if self.transit.x == self.dest.x and self.transit.y == self.dest.y and reward > 0:
                     # 任务完成
-                    # print("======》逃之夭夭====》")
-                    return self.observation_space, 1.01, False, self.transit
-                return self.observation_space, reward, done, self.transit
+                    print("======》逃之夭夭====》")
+                    return self.observation_space, 10.1, False, self.transit.LOD, self.dest.LOD
+                return self.observation_space, reward, done, self.transit.LOD, self.dest.LOD
 
     # DONE save trace
     def saveTrace(self):
@@ -606,33 +607,33 @@ class GridMapEnv:
     # def createState(self):
     #     obs = []
 
-        # trace_file = "./datasets/trace.csv"
-        # if not os.path.getsize(trace_file):
-        #     a = np.zeros((6,))
-        #     obs = np.hstack((a, ([self.born.x, self.born.y])))
-        #     # obs = np.array([self.born.x, self.born.y])
-        # else:
-        #     _trace = pd.read_csv(trace_file, usecols=['end_x', 'end_y'])
-        #     if len(_trace) >= 4:
-        #         obs = [
-        #             _trace.iloc[-4].values[0], _trace.iloc[-4].values[1],
-        #             _trace.iloc[-3].values[0], _trace.iloc[-3].values[1],
-        #             _trace.iloc[-2].values[0], _trace.iloc[-2].values[1],
-        #             _trace.iloc[-1].values[0], _trace.iloc[-1].values[1]
-        #         ]
-        #         obs = np.array(obs)
-        #
-        #     if len(_trace) > 0 and len(_trace) < 4:
-        #         a = np.zeros((8 - len(_trace) * 2))
-        #         b = np.array((_trace['end_x'].values.tolist(), _trace['end_y'].values.tolist()), float)
-        #         obs = np.hstack((a, b.reshape(-1)))
-        #     #
-        #     if len(_trace) == 0:
-        #         a = np.zeros((6,))
-        #         obs = np.hstack((a, ([self.born.x, self.born.y])))
-        #
-        # self.observation_space = obs
-        # return obs
+    # trace_file = "./datasets/trace.csv"
+    # if not os.path.getsize(trace_file):
+    #     a = np.zeros((6,))
+    #     obs = np.hstack((a, ([self.born.x, self.born.y])))
+    #     # obs = np.array([self.born.x, self.born.y])
+    # else:
+    #     _trace = pd.read_csv(trace_file, usecols=['end_x', 'end_y'])
+    #     if len(_trace) >= 4:
+    #         obs = [
+    #             _trace.iloc[-4].values[0], _trace.iloc[-4].values[1],
+    #             _trace.iloc[-3].values[0], _trace.iloc[-3].values[1],
+    #             _trace.iloc[-2].values[0], _trace.iloc[-2].values[1],
+    #             _trace.iloc[-1].values[0], _trace.iloc[-1].values[1]
+    #         ]
+    #         obs = np.array(obs)
+    #
+    #     if len(_trace) > 0 and len(_trace) < 4:
+    #         a = np.zeros((8 - len(_trace) * 2))
+    #         b = np.array((_trace['end_x'].values.tolist(), _trace['end_y'].values.tolist()), float)
+    #         obs = np.hstack((a, b.reshape(-1)))
+    #     #
+    #     if len(_trace) == 0:
+    #         a = np.zeros((6,))
+    #         obs = np.hstack((a, ([self.born.x, self.born.y])))
+    #
+    # self.observation_space = obs
+    # return obs
 
     # TODO 结点条件加入
 
@@ -654,11 +655,11 @@ class GridMapEnv:
         if os.path.isfile(file_path):
             os.remove(file_path)
             open(file_path, 'w').close()
-        self.observation_space=np.array([
+        self.observation_space = np.array([
             self.transit.x,
             self.transit.y,
-            -1,
-            -1,
+            # self.transit.LOD,
+            # self.dest.LOD,
             self.dest.x,
             self.dest.y
         ])

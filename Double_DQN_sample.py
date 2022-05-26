@@ -10,7 +10,7 @@ import random
 import time
 from collections import deque
 
-from envir.GridMapEnv_1 import GridMapEnv, Points
+from envir.GridMapEnv_2 import GridMapEnv, Points
 from rich.progress import track
 
 start_time = time.time()
@@ -22,7 +22,7 @@ episode_rewards = []
 average_rewards = []
 max_reward = 0
 max_average_reward = 0
-step_limit = 15
+step_limit = 30
 env = GridMapEnv()
 state_size = env.observation_space.shape[0]
 action_size = env.action_space.n
@@ -50,8 +50,8 @@ class DQNAgent:
         # epsilon greedy exploration
         self.initial_epsilon = 1.0
         self.epsilon = self.initial_epsilon
-        self.min_epsilon = 0.1
-        self.linear_annealed = (self.initial_epsilon - self.min_epsilon) / 6000
+        self.min_epsilon = 0.01
+        self.linear_annealed = (self.initial_epsilon - self.min_epsilon) / 4000
         self.decay_rate = 0.995
 
         # check the hyperparameters
@@ -73,13 +73,13 @@ class DQNAgent:
         self.target_network_counter = 0
         if self.load_model:
             self.model = keras.models.load_model('./model/Double_DQN/DDPG_model_sample.h5')
-            self.target_model = keras.models.load_model('./model/Double_DQN/DDPG_target_sample.h5')
+            self.target_model = keras.models.load_model('./model/Double_DQN/DDPG_target_sample_db.h5')
         else:
             self.model = self.create_model()
             self.target_model = self.create_model()
 
         # experience replay
-        self.experience_replay = deque(maxlen=1000000)
+        self.experience_replay = deque(maxlen=3000)
         self.batch_size = 64
         self.gamma = 0.99
         self.replay_start_size = 320
@@ -113,7 +113,7 @@ class DQNAgent:
     #             model.fit(buffer_state, y, epochs=1, verbose=0)
 
     def training(self):
-        if len(self.experience_replay) >= self.replay_start_size:
+        if len(self.experience_replay) >= self.replay_start_size and len(self.experience_replay) % 32==0:
             # if self.epsilon > self.min_epsilon:
             #    self.epsilon = self.epsilon * self.decay_rate
             # 均匀随机采样
@@ -189,35 +189,66 @@ class DQNAgent:
 
     # 优先级
     def setResemblanceValue(self, example):
-        point_a = Points(example[3][0][0], example[3][0][1])
-        point_a = env.getPointInfo(point_a)
-        point_a = np.array(point_a.LOD.split(":"), dtype=int)
-        point_b = Points(example[3][0][4], example[3][0][5])
-        point_b = env.getPointInfo(point_b)
-        point_b = np.array(point_b.LOD.split(":"), dtype=int)
+        point_a = np.array(example[5].split(':'),dtype=int)
+        point_b = np.array(example[6].split(':'),dtype=int)
 
-        l_a = len(point_a)
-        l_b = len(point_b)
+        key_words =  list(set(point_a).union(set(point_b)))
+
+        point_a_vector = np.zeros(len(key_words))
+        point_b_vector = np.zeros(len(key_words))
+
+        # 计算词频率
+        for i in range(len(key_words)):
+            # 遍历key_word中每个词在句子中的出现次数
+            for j in range(len(point_a)):
+                if key_words[i] == point_a[j]:
+                    point_a_vector[i] += 1
+            for k in range(len(point_b)):
+                if key_words[i] == point_b[k]:
+                    point_b_vector[i] += 1
+
+        pcc = float(np.dot(point_a_vector,point_b_vector)/(np.linalg.norm(point_a_vector)*np.linalg.norm(point_b_vector)))
+
+        # l_a = len(point_a)
+        # l_b = len(point_b)
 
         # 系数
-        a_b = 0.0
+        # a_b = 0.0
 
-        isLonger = True if l_a >= l_b else False
-        if isLonger:
-            point_a = point_a[0:l_b]
-            a_b = l_b / l_a
-        else:
-            point_b = point_b[0:l_a]
-            a_b = l_a / l_b
+        # isLonger = True if l_a >= l_b else False
+        # l = abs(l_a-l_b)
+        # fixed_array = np.zeros((l,),dtype=int)
+        # if isLonger:
+        #     # point_a = point_a[0:l_b]
+        #     # point_b.extend([0]*l)
+        #     point_b=np.hstack((point_b,fixed_array))
+        #     # point_b.append(np.zeros((l,),dtype=int))
+        #     a_b = l_b / l_a
+        # else:
+        #     # point_b = point_b[0:l_a]
+        #     # point_a.extend([0] * l)
+        #     # np.hstack((point_a,(np.zeros((l,),dtype=int))))
+        #     point_a=np.hstack((point_a, fixed_array))
+        #     a_b = l_a / l_b
 
-        a = point_a - np.average(point_a)
-        b = point_b - np.average(point_b)
+        # sum_ab = np.sum(np.sum(point_a,point_b))
+        # sum_a = np.sum(np.sum(point_a))
+        # sum_b = np.sum(np.sum(point_b))
+        # sum_a2 = np.sum(np.sum(point_a*point_a))
+        # sum_b2 = np.sum(np.sum(point_b*point_b))
+        #
+        # pcc = (l_a*sum_ab-sum_a*sum_b)/np.sqrt((l_a*sum_a2-sum_a*sum_a)*(l_a*sum_b2-sum_b*sum_b))
 
-        n = np.sum(a * b)
-        den = np.sqrt(np.sum(np.power(a, 2)) * np.sum(np.power(b, 2)))
-        if den == 0:
-            return (example[0], example[1], example[2], example[3], example[4], 0.0)
-        return (example[0], example[1], example[2], example[3], example[4], a_b * np.abs(n / den))
+        # n = np.sum(a * b)
+        # den = np.sqrt(np.sum(np.power(a, 2)) * np.sum(np.power(b, 2)))
+        # 皮尔逊
+        # pcc = np.corrcoef(point_a, point_b)
+        # print(pcc)
+        # 奖励等级 根据优先级进行优化
+        reward = example[2]*pcc if (example[4] or (example[3][0][0]==example[3][0][2] and example[3][0][1]==example[3][0][3])) else env.punish[2]
+        # if den == 0:
+        #     return (example[0], example[1], reward, example[3], example[4], 0.0)
+        return (example[0], example[1], reward, example[3], example[4], pcc if  example[4] else 0.0)
 
     # 排序
     def saveResemblanceValue(self):
@@ -239,54 +270,57 @@ class DQNAgent:
         trend_eps_6 = []
         # 对应范围样本不够，则不取。
         for value in trends:
+            # print(value)
             if value[5] < 1 and value[5] >= 0.8:
                 trend_eps_1.append(value)
-                batch_siez_1 = round(((self.sample_proportion[0] / sum) * self.batch_size))
-                if len(trend_eps_1) > batch_siez_1:
-                    temporary_experience_replay.extend(
-                        random.sample(trend_eps_1, batch_siez_1))
-                if len(trend_eps_1) >0 and len(trend_eps_1) <= batch_siez_1:
-                    temporary_experience_replay.extend(trend_eps_1)
             if value[5] < 0.8 and value[5] >= 0.6:
                 trend_eps_2.append(value)
-                batch_siez_2 = round(((self.sample_proportion[1] / sum) * self.batch_size))
-                if len(trend_eps_2) > batch_siez_2:
-                    temporary_experience_replay.extend(
-                        random.sample(trend_eps_2, batch_siez_2))
-                if len(trend_eps_2) > 0 and len(trend_eps_2) <= batch_siez_2:
-                    temporary_experience_replay.extend(trend_eps_2)
             if value[5] < 0.6 and value[5] >= 0.4:
                 trend_eps_3.append(value)
-                batch_siez_3 = round(((self.sample_proportion[2] / sum) * self.batch_size))
-                if len(trend_eps_3) > batch_siez_3:
-                    temporary_experience_replay.extend(
-                        random.sample(trend_eps_3, batch_siez_3))
-            if len(trend_eps_3) > 0 and len(trend_eps_3) <= batch_siez_3:
-                    temporary_experience_replay.extend(trend_eps_3)
             if value[5] < 0.4 and value[5] >= 0.2:
                 trend_eps_4.append(value)
-                batch_siez_4 = round(((self.sample_proportion[3] / sum) * self.batch_size))
-                if len(trend_eps_4) > batch_siez_4:
-                    temporary_experience_replay.extend(
-                        random.sample(trend_eps_4, batch_siez_4))
-                if len(trend_eps_4) > 0 and len(trend_eps_4) <= batch_siez_4:
-                    temporary_experience_replay.extend(trend_eps_4)
             if value[5] < 0.2 and value[5] >= 0.0:
                 trend_eps_5.append(value)
-                batch_siez_5 = round(((self.sample_proportion[4] / sum) * self.batch_size))
-                if len(trend_eps_5) > batch_siez_5:
-                    temporary_experience_replay.extend(
-                        random.sample(trend_eps_5, batch_siez_5))
-                if len(trend_eps_5) > 0 and len(trend_eps_5) <= batch_siez_5:
-                    temporary_experience_replay.extend(trend_eps_5)
             if value[5] < 0.0 and value[5] >= -1:
                 trend_eps_6.extend(value)
-                batch_siez_6 = round(((self.sample_proportion[5] / sum) * self.batch_size))
-                if len(trend_eps_6) > batch_siez_6:
-                    temporary_experience_replay.extend(
-                        random.sample(trend_eps_6, batch_siez_6))
-                if len(trend_eps_6) > 0 and len(trend_eps_6) <= batch_siez_6:
-                    temporary_experience_replay.extend(trend_eps_6)
+
+        batch_size_1 = round(((self.sample_proportion[0] / sum) * self.batch_size))
+        batch_size_2 = round(((self.sample_proportion[1] / sum) * self.batch_size))
+        batch_size_3 = round(((self.sample_proportion[2] / sum) * self.batch_size))+1
+        batch_size_4 = round(((self.sample_proportion[3] / sum) * self.batch_size))
+        batch_size_5 = round(((self.sample_proportion[4] / sum) * self.batch_size))
+        batch_size_6 = round(((self.sample_proportion[5] / sum) * self.batch_size))
+
+        if len(trend_eps_1) > batch_size_1:
+            temporary_experience_replay.extend(
+                random.sample(trend_eps_1, batch_size_1))
+        if len(trend_eps_1) > 0 and len(trend_eps_1) <= batch_size_1:
+            temporary_experience_replay.extend(trend_eps_1)
+        if len(trend_eps_2) > batch_size_2:
+            temporary_experience_replay.extend(
+                random.sample(trend_eps_2, batch_size_2))
+        if len(trend_eps_2) > 0 and len(trend_eps_2) <= batch_size_2:
+            temporary_experience_replay.extend(trend_eps_2)
+        if len(trend_eps_3) > batch_size_3:
+            temporary_experience_replay.extend(
+                random.sample(trend_eps_3, batch_size_3))
+        if len(trend_eps_3) > 0 and len(trend_eps_3) <= batch_size_3:
+            temporary_experience_replay.extend(trend_eps_3)
+        if len(trend_eps_4) > batch_size_4:
+            temporary_experience_replay.extend(
+                random.sample(trend_eps_4, batch_size_4))
+        if len(trend_eps_4) > 0 and len(trend_eps_4) <= batch_size_4:
+            temporary_experience_replay.extend(trend_eps_4)
+        if len(trend_eps_5) > batch_size_5:
+            temporary_experience_replay.extend(
+                random.sample(trend_eps_5, batch_size_5))
+        if len(trend_eps_5) > 0 and len(trend_eps_5) <= batch_size_5:
+            temporary_experience_replay.extend(trend_eps_5)
+        if len(trend_eps_6) > batch_size_6:
+            temporary_experience_replay.extend(
+                random.sample(trend_eps_6, batch_size_6))
+        if len(trend_eps_6) > 0 and len(trend_eps_6) <= batch_size_6:
+            temporary_experience_replay.extend(trend_eps_6)
         return temporary_experience_replay
 
 
@@ -299,24 +333,25 @@ if agent.isTraining:
     for episode in track(range(episodes)):
         rewards = 0
         state = env.reset()
-        state = np.reshape(state, [1, 6])
+        state = np.reshape(state, [1, 4])
         env.createVoronoi()
         env.bornToDes()
         env.drawGridMap()
         while True:
             action = agent.acting(state)
-            next_state, reward, done, _ = env.step(action)
-            rewards += reward
-            next_state = np.reshape(next_state, [1, 6])
+            next_state, reward, done, LOD_a,LOD_b = env.step(action)
+            next_state = np.reshape(next_state, [1, 4])
             # reward = -100 if done else reward
-            example = agent.setResemblanceValue((state, action, reward, next_state, done, _))
-            agent.experience_replay.append(example)
+            # TODO 奖励值未同步
+            (state, action, reward, next_state, done,pcc) = agent.setResemblanceValue((state, action, reward, next_state, done,  LOD_a,LOD_b))
+            rewards += reward
+            agent.experience_replay.append((state, action, reward, next_state, done,pcc))
             state = next_state
             if (not done) or rewards >= step_limit:  # or rewards >= step_limit
                 episode_rewards.append(rewards)
                 average_reward = tf.reduce_mean(episode_rewards).numpy()
                 average_rewards.append(average_reward)
-                max_reward = max(max_reward, rewards)
+                max_reward = max_reward if max_reward > rewards else rewards
                 agent.training()
                 with summary_writer.as_default():
                     tf.summary.scalar('episode reward[s]', rewards, step=episode)
@@ -369,7 +404,7 @@ if agent.play:
     for episode in range(500):
         state = env.reset()
         rewards = 0
-        state = np.reshape(state, [1, 6])
+        state = np.reshape(state, [1, 4])
         env.createVoronoi()
         env.bornToDes()
         env.drawGridMap()
@@ -378,7 +413,7 @@ if agent.play:
             action = np.argmax(agent.model.predict(state)[0])
             next_state, reward, done, _ = env.step(action)
             rewards += reward
-            next_state = np.reshape(next_state, [1, 6])
+            next_state = np.reshape(next_state, [1, 4])
             state = next_state
             if (not done) or rewards >= step_limit:
                 episode_rewards.append(rewards)
